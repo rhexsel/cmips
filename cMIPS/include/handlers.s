@@ -111,7 +111,7 @@ UARTinterr:
 	# While you are developing the complete handler, uncomment the
 	#   line below
 	#
-	 .include "../tests/handlerUART.s"
+	# .include "../tests/handlerUART.s"
 	#
 	# Your new handler should be self-contained and do the
 	#   return-from-exception.  To do that, copy the lines below up
