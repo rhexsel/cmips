@@ -1,0 +1,113 @@
+###
+### this file in NOT a shell script,
+### yet it was written to make it easy for cutting-n-pasting with the mouse
+###
+
+# to compile GCC, these three libraries may have to be fetched:
+
+wget http://www.mpfr.org/mpfr-current/mpfr-3.1.5.tar.gz
+wget ftp://ftp.gnu.org/gnu/mpc/mpc-1.0.3.tar.gz
+wget ftp://ftp.gmplib.org/pub/gmp/gmp-6.1.2.tar.bz2
+
+# it is (very) likely that new(er) versions have been released; please
+# fetch the new(est) versions.
+
+# and, according to instructions in 
+#   http://gcc.gnu.org/install/prerequisites.html
+# after you downloaded and expanded the GCC sources, expand the three
+# tarballs into the directory with GCC sources, change their
+# directory names to mpfr mpc gmp (removing the version suffixes);
+# then these libraries will be automagically compiled as part of GCC.
+
+# OTOH, if you are very lucky, the libraries installed by aptitude will do...
+
+# fetch all the auxiliary programs -- this assumes a Debian installation
+aptitude install make flex bison libgmp-dev libmpfr-dev libmpc-dev g++
+
+# clean up any aliases/function replacements for /bin/ls
+unset ls
+
+# make sure the installed files are read-exec by all
+umask 022
+
+# check the latest version of GCC in http://ftp.gnu.org/gnu/gcc/
+# check the latest version of binutils in http://ftp.gnu.org/gnu/binutils
+
+BINUTILS=binutils-2.25
+COMPILER=gcc-5.1.0
+
+wget -c http://ftp.gnu.org/gnu/binutils/${BINUTILS}.tar.bz2
+wget -c http://ftp.gnu.org/gnu/gcc/${COMPILER}/${COMPILER}.tar.gz
+
+# the cross-compiler will be installed in /opt/cross so it does not,
+# in any way, conflicts with the native GCC or binutils.
+
+# set the installation pathname as PREFIX so that {bin,lib,man} are put there
+#   make sure you have write permission to /opt/cross,
+#   else perform the "make install" steps as root (with umask 022)
+export PREFIX=/opt/cross/
+export TARGET=mips
+
+## build and install binutils (takes a few minutes)
+
+tar -xvjf ${BINUTILS}.tar.bz2
+cd ${BINUTILS}
+./configure --target=$TARGET --prefix=$PREFIX --disable-nls
+make
+
+# do the next one as root?  su ; umask 022 ; make install ; exit
+
+make install
+cd ..
+
+## build and install GCC (takes rather more than a few minutes)
+
+tar -xvzf ${COMPILER}.tar.gz
+cd ${COMPILER}
+
+# you may want/need to expand the libraries' tarballs at this point,
+#  by doing
+#  [[ do not copy these commands unless versions are same as shown below ]]
+#    tar -xvjf ../gmp-6.1.2.tar.bz2 
+#    mv gmp-6.1.2/ gmp
+#    tar -xvzf ../mpc-1.0.3.tar.gz
+#    mv mpc-1.0.3/ mpc
+#    tar -xxvf ../mpfr-3.1.5.tar.xz
+#    mv mpfr-3.1.5/ mpfr
+
+export PATH=$PATH:$PREFIX/bin
+./configure --target=$TARGET --prefix=$PREFIX --disable-nls \
+     --enable-languages=c,c++ --without-headers
+make all-gcc
+
+# do the next one as root?  su ; umask 022 ; make install-gcc ; exit
+make install-gcc
+cd ..
+
+
+# once GCC and Binutils are compiled and installed, all that is needed is
+#  for you to add the new path to your PATH, preferably in your ~/.bashrc
+#  do not forget to substitute ${PREFIX} by /opt/cross in ~/.bashrc
+export PATH=${PATH}:${PREFIX}/bin
+export MANPATH=${MANPATH}:${PREFIX}/man
+
+
+# and that ends the cross-compiler installation.
+
+
+# You may also want/need to install GHDL on your machine.  As of July,
+#  2015, there is no official Debian package.  You must download the
+#  unofficial package from Sourceforge at:
+#    https://sourceforge.net/p/ghdl-updates/wiki/Debian%20Instructions/
+#  and pick the appropriate version for your computer (32 or 64 bit).
+#
+# You also need to fetch gnat and libgnat from somewhere; I find it easier
+#  to download the .deb files onto the same directory as ghdl*.deb
+#
+# When doing  dpkg -i ghdl*.deb  it will whine and complain about versions.
+#  What I have done is to use the following RISKY command:
+#
+#  dpkg --ignore-depends=ghdl*.deb --ignore-depends=libgnat-4.6 -i ghdl*.deb
+#
+#  it forces dpkg to ignore the dependencies for GHDL and install it
+#  with whatever version your machine has for gnat/libgnat.  Caveat emptor.

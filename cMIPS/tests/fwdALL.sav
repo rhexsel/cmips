@@ -1,0 +1,86 @@
+[*]
+[*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
+[*] Sun Nov 18 18:40:59 2012
+[*]
+[dumpfile] "/home/roberto/cMIPS/v_if.vcd"
+[dumpfile_mtime] "Sun Nov 18 18:33:27 2012"
+[dumpfile_size] 865684
+[savefile] "/home/roberto/cMIPS/fwdALL.sav"
+[timestart] 1175800000
+[size] 983 970
+[pos] -1 -1
+*-27.000000 1348200000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] u_mips.
+[treeopen] u_mips.u_regs.g1(0).
+[sst_width] 210
+[signals_width] 224
+[sst_expanded] 1
+[sst_vpaned_height] 288
+@28
+clk
+@22
+u_mips.i_addr[31:0]
+u_mips.instr[31:0]
+@28
+u_mips.pcsel[1:0]
+@200
+-
+@22
+u_mips.a_rs[4:0]
+u_mips.regs_a[31:0]
+u_mips.a_rt[4:0]
+u_mips.regs_b[31:0]
+u_mips.br_target[31:0]
+u_mips.displ32[31:0]
+u_mips.a_c[4:0]
+@23
+u_mips.eq_fwd_a[31:0]
+@22
+u_mips.eq_fwd_b[31:0]
+u_mips.mm_result[31:0]
+@28
+u_mips.br_stall
+u_mips.br_eq_zero
+@22
+u_mips.br_operand[31:0]
+@200
+-
+@22
+u_mips.ex_a_rs[4:0]
+u_mips.ex_a[31:0]
+u_mips.ex_a_rt[4:0]
+u_mips.ex_b[31:0]
+u_mips.alu_inp_a[31:0]
+u_mips.alu_inp_b[31:0]
+u_mips.result[31:0]
+u_mips.ex_a_c[4:0]
+@28
+u_mips.ex_wreg
+u_mips.ex_wrmem
+u_mips.if_rf_ld
+u_mips.ex_move
+@200
+-
+@22
+u_mips.mm_result[31:0]
+@28
+u_mips.fwd_mem[1:0]
+@22
+u_mips.data[31:0]
+u_mips.d_addr[31:0]
+@28
+u_mips.mm_wrmem
+u_mips.mm_aval
+u_mips.mm_wreg
+@200
+-
+@22
+u_mips.wb_result[31:0]
+u_mips.wb_rd_data[31:0]
+u_mips.wb_a_c[4:0]
+u_mips.wb_c[31:0]
+@28
+u_mips.wb_wreg
+u_mips.wb_muxc[2:0]
+[pattern_trace] 1
+[pattern_trace] 0

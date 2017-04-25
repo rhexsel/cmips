@@ -1,0 +1,132 @@
+[*]
+[*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
+[*] Sat Mar 25 15:06:05 2017
+[*]
+[dumpfile] "/home/roberto/cMIPS/v_cMIPS.vcd"
+[dumpfile_mtime] "Sat Mar 25 14:52:40 2017"
+[dumpfile_size] 1156971
+[savefile] "/home/roberto/cMIPS/tlb.sav"
+[timestart] 1622200000
+[size] 1240 1018
+[pos] -1 -1
+*-25.727983 1320000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] u_core.
+[treeopen] u_core.u_alu.
+[sst_width] 221
+[signals_width] 208
+[sst_expanded] 1
+[sst_vpaned_height] 331
+@28
+clk
+@22
+u_core.pc[31:0]
+u_core.phy_i_addr[31:0]
+u_core.instr_fetched[31:0]
+@28
+u_core.pcsel[1:0]
+u_core.excp_pcsel[2:0]
+u_core.annul_twice
+u_core.exception_taken
+@200
+-    decode, reg fetch
+@22
+u_core.rf_instruction[31:0]
+@24
+u_core.exception_dec[31:0]
+@200
+-    exec
+@22
+u_core.alu_inp_a[31:0]
+u_core.alu_inp_b[31:0]
+u_core.result[31:0]
+u_core.v_addr[31:0]
+@200
+-    memory
+@28
+u_core.b_sel[3:0]
+@22
+u_core.data_inp[31:0]
+u_core.data_out[31:0]
+d_addr[31:0]
+@28
+cpu_d_aval
+wr
+@200
+-    write-back
+@28
+u_core.wb_wreg
+@24
+u_core.wb_a_c[4:0]
+@22
+u_core.wb_c[31:0]
+@28
+u_core.wb_muxc[2:0]
+@22
+u_core.wb_cop0_val[31:0]
+@200
+-   COP-0
+@28
+u_core.tlb_exception
+@24
+u_core.exccode[4:0]
+@22
+u_core.cause[31:0]
+u_core.status[31:0]
+u_core.epc[31:0]
+u_core.badvaddr[31:0]
+u_core.context[31:0]
+@28
+u_core.mm_tlb_exception
+u_core.mm_tlb_stage_mm
+@200
+-
+@22
+u_core.index[31:0]
+u_core.entryhi[31:0]
+u_core.entrylo0[31:0]
+u_core.entrylo1[31:0]
+@200
+-
+@24
+u_core.tlb_adr[31:0]
+u_core.wired[31:0]
+u_core.random[31:0]
+@28
+u_core.hit_mm_d
+u_core.hit_mm_v
+u_core.hit_mm
+@24
+u_core.hit_mm_adr[31:0]
+@22
+u_core.tlb_tag0[31:0]
+u_core.tlb_dat0_0[25:0]
+u_core.tlb_dat0_1[25:0]
+u_core.tlb_tag1[31:0]
+u_core.tlb_dat1_0[25:0]
+u_core.tlb_dat1_1[25:0]
+u_core.tlb_tag2[31:0]
+u_core.tlb_dat2_0[25:0]
+u_core.tlb_dat2_1[25:0]
+u_core.tlb_tag3[31:0]
+u_core.tlb_dat3_0[25:0]
+u_core.tlb_dat3_1[25:0]
+@23
+u_core.tlb_tag4[31:0]
+@22
+u_core.tlb_dat4_0[25:0]
+u_core.tlb_dat4_1[25:0]
+u_core.tlb_tag5[31:0]
+u_core.tlb_dat5_0[25:0]
+u_core.tlb_dat5_1[25:0]
+u_core.tlb_tag6[31:0]
+u_core.tlb_dat6_0[25:0]
+u_core.tlb_dat6_1[25:0]
+u_core.tlb_tag7[31:0]
+u_core.tlb_dat7_0[25:0]
+u_core.tlb_dat7_1[25:0]
+@28
+u_core.hit_pc
+@24
+u_core.hit_pc_adr[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

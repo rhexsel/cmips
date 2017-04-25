@@ -1,0 +1,78 @@
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+rom              0x0000000000000000 0x0000000000004000 xr
+ram              0x0000000000040000 0x0000000000020000 !xr
+sdram            0x0000000004000000 0x0000000002000000 !xr
+io               0x000000003c000000 0x0000000000020000 !xr
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Linker script and memory map
+
+
+.text           0x0000000000000000      0x888
+ *(.text .text.*)
+ .text          0x0000000000000000      0x888 mac_sdcard_0.o
+                0x0000000000000000                _start
+                0x0000000000000888                _etext = .
+
+.data           0x0000000000040000        0x4
+                0x0000000000040000                _bdata = .
+ *(.data .data.*)
+ .data          0x0000000000040000        0x4 mac_sdcard_0.o
+                0x0000000000040004                _edata = .
+
+.data1
+ *(.data1)
+
+.lit8
+ *(.lit8)
+
+.lit4
+ *(.lit4)
+
+.sdata          0x0000000000040004        0x4
+ *(.sdata .sdata.*)
+ .sdata         0x0000000000040004        0x4 mac_sdcard_0.o
+
+.sbss           0x0000000000040008        0x0
+ *(.sbss .sbss.*)
+ .sbss          0x0000000000040008        0x0 mac_sdcard_0.o
+ *(.scommon .scommon.*)
+
+.bss            0x0000000000040008        0x4
+ *(.bss .bss.*)
+ .bss           0x0000000000040008        0x4 mac_sdcard_0.o
+ *(COMMON)
+
+.rodata1
+ *(.rodata1)
+
+.rodata         0x000000000004000c        0x0
+ *(.rodata .rodata.*)
+                0x000000000004000c                _end = .
+                0x0000000000040000                start_RAM = 0x40000
+                0x0000000000020000                end_RAM = 0x20000
+                0x0000000000010000                half_RAM = (end_RAM >> 0x1)
+                0x0000000000050000                base_PT = (start_RAM + half_RAM)
+
+.MIPS.abiflags  0x0000000000040010       0x18
+ .MIPS.abiflags
+                0x0000000000040010       0x18 mac_sdcard_0.o
+
+.PT
+ *(.PT)
+LOAD mac_sdcard_0.o
+OUTPUT(mac_sdcard_0.elf elf32-littlemips)
+
+.reginfo        0x0000000000000000       0x18
+ .reginfo       0x0000000000000000       0x18 mac_sdcard_0.o
+
+.pdr            0x0000000000000000       0x40
+ .pdr           0x0000000000000000       0x40 mac_sdcard_0.o
+
+.gnu.attributes
+                0x0000000000000000       0x10
+ .gnu.attributes
+                0x0000000000000000       0x10 mac_sdcard_0.o

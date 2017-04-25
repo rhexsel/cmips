@@ -1,0 +1,93 @@
+[*]
+[*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
+[*] Mon Apr 24 11:28:15 2017
+[*]
+[dumpfile] "/home/roberto/cMIPS/v_cMIPS.vcd"
+[dumpfile_mtime] "Mon Apr 24 11:27:52 2017"
+[dumpfile_size] 14361678
+[savefile] "/home/roberto/cMIPS/v_rx.sav"
+[timestart] 0
+[size] 1233 881
+[pos] -1 -1
+*-30.000000 32146400000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] u_core.u_alu.
+[treeopen] u_simple_uart.
+[sst_width] 210
+[signals_width] 218
+[sst_expanded] 1
+[sst_vpaned_height] 255
+@28
+clk
+@22
+u_core.pc[31:0]
+u_core.instr_fetched[31:0]
+@200
+-    decode, reg fetch
+@22
+u_core.regs_a[31:0]
+u_core.regs_b[31:0]
+u_core.rf_instruction[31:0]
+@200
+-    exec
+@24
+u_core.u_alu.operation[31:0]
+@22
+u_core.alu_inp_a[31:0]
+u_core.alu_inp_b[31:0]
+u_core.result[31:0]
+@200
+-    memory
+@28
+u_core.b_sel[3:0]
+@22
+d_addr[31:0]
+@28
+cpu_d_aval
+u_core.mm_wrmem
+@22
+u_core.data_inp[31:0]
+u_core.data_out[31:0]
+@200
+-    write-back
+@28
+u_core.wb_muxc[2:0]
+u_core.wb_wreg
+@22
+u_core.wb_a_c[4:0]
+u_core.wb_c[31:0]
+@200
+-   UART
+@28
+u_simple_uart.u_uart.rts
+u_simple_uart.u_uart.s_stat
+u_simple_uart.u_uart.status[7:0]
+@22
+u_simple_uart.u_uart.status[7:0]
+@28
+u_simple_uart.u_uart.s_ctrl
+u_simple_uart.u_uart.ctrl[7:0]
+u_simple_uart.u_uart.s_int
+@200
+-   reception circuit
+@24
+u_simple_uart.u_uart.rxcpu_dbg_st[31:0]
+u_simple_uart.u_uart.rx_dbg_st[31:0]
+@28
+u_simple_uart.u_uart.s_rx
+@820
+u_simple_uart.u_uart.rxreg[7:0]
+@23
+u_simple_uart.u_uart.rxreg[7:0]
+@28
+u_simple_uart.u_uart.sta_recv_sto[9:0]
+u_simple_uart.u_uart.rxdat
+u_simple_uart.u_uart.rxclk
+@200
+-  REMOTE (fake) UART
+@24
+u_uart_remota.tx_dbg_st[31:0]
+@28
+u_uart_remota.outdat
+u_uart_remota.tx_clk
+[pattern_trace] 1
+[pattern_trace] 0

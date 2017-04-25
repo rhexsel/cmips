@@ -1,0 +1,8 @@
+{ "" "" "" "Parallel compilation is not licensed and has been disabled" {  } {  } 0 20028 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "VHDL Process Statement warning at aux.vhd(281): signal \"data\" is read inside the Process Statement but isn't in the Process Statement's sensitivity list" {  } {  } 0 10492 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "VHDL Process Statement warning at aux.vhd(300): inferring latch(es) for signal or variable \"q\", which holds its previous value in one or more paths through the process" {  } {  } 0 10631 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "VHDL Process Statement warning at aux.vhd(251): inferring latch(es) for signal or variable \"Q\", which holds its previous value in one or more paths through the process" {  } {  } 0 10631 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "*" {  } {  } 0 10036 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "*" {  } {  } 0 15610 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "*" {  } {  } 0 292013 "" 0 0 "Quartus II" 0 -1 0 ""}
+{ "" "" "" "308012" {  } {  } 0 9999 "" 0 0 "Quartus II" 0 -1 0 ""}

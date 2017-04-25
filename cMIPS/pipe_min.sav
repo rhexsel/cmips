@@ -1,0 +1,68 @@
+[*]
+[*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
+[*] Wed Aug 17 13:43:15 2016
+[*]
+[dumpfile] "/home/roberto/cMIPS/v_cMIPS.vcd"
+[dumpfile_mtime] "Wed Aug 17 13:41:02 2016"
+[dumpfile_size] 6865336
+[savefile] "/home/roberto/cMIPS/pipe_min.sav"
+[timestart] 1038600000
+[size] 1201 673
+[pos] 142 -174
+*-26.000000 262800000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] u_core.
+[treeopen] u_core.u_alu.
+[treeopen] u_fpu.
+[treeopen] u_lcd_display.
+[sst_width] 210
+[signals_width] 214
+[sst_expanded] 1
+[sst_vpaned_height] 197
+@28
+clk
+@200
+-== FETCH ======
+@22
+u_core.pc[31:0]
+@200
+-
+-== DECOD ======
+@22
+u_core.rf_instruction[31:0]
+u_core.opcode[5:0]
+@24
+u_core.a_rs[4:0]
+u_core.a_rt[4:0]
+u_core.a_rd[4:0]
+u_core.a_c[4:0]
+@200
+-
+-== EXEC =======
+@24
+u_core.u_alu.operation[31:0]
+@22
+u_core.alu_inp_a[31:0]
+u_core.alu_inp_b[31:0]
+u_core.result[31:0]
+@200
+-
+-== MEM =======
+@28
+cpu_d_aval
+u_core.b_sel[3:0]
+wr
+@22
+d_addr[31:0]
+u_core.data_inp[31:0]
+u_core.data_out[31:0]
+@200
+-
+-== WR BACK ====
+@28
+u_core.wb_wreg
+@24
+u_core.wb_a_c[4:0]
+@22
+u_core.wb_c[31:0]
+[pattern_trace] 1
+[pattern_trace] 0
