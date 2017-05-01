@@ -7,7 +7,7 @@
 
 #include "cMIPS.h"
 
-#include "uart_defs.c"
+#include "uart_defs.h"
 
 
 
