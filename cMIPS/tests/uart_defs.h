@@ -23,8 +23,8 @@ typedef struct status {  // status register fields (uses only ls byte)
 typedef struct interr  { // interrupt clear bits (uses only ls byte)
   unsigned int ign : 24, // ignore uppermost 3 bytes
     ign3m   : 3,         // bits 7,6,5 ignored
-    clrTX   : 1,         // interrupt on TX buffer empty (bit 4)
-    clrRX   : 1,         // interrupt on RX buffer full (bit 3)
+    clrTX   : 1,         // clear IRQ on TX buffer empty (bit 4)
+    clrRX   : 1,         // clear IRQ on RX buffer full (bit 3)
     ign3l   : 3;         // bits 2,1,0 ignored
 } Tinterr;
 
@@ -36,4 +36,26 @@ typedef struct serial {
 } Tserial;
 
 
-#define EOT 0x04   // End Of Transmission character
+
+#define MAXQ (1<<4)     //  16, MUST be a power of 2
+
+typedef struct UARTdriver {
+   int      rx_hd;      // reception queue head index
+   int      rx_tl;      // reception queue tail index
+   char     rx_q[MAXQ]; // reception queue
+   int      tx_hd;      // transmission queue head index
+   int      tx_tl;      // transmission queue tail index
+   char     tx_q[MAXQ]; // transmission queue
+   int      nrx;        // number of characters in rx_queue
+   int      ntx;        // number of spaces in tx_queue
+} UARTdriver;
+
+
+#define EOT 0x04        // End Of Transmission character
+
+// convert small integer (i<16) to hexadecimal digit
+#define i2c(a) ( ((a) < 10)   ? ((a)+'0') : (((a)+'a')-10) )
+
+// convert hexadecimal digit to integer (i<16)
+#define c2i(a) ( ((a) <= '9') ? ((a)-'0') : (((a)-'a')+10) )
+

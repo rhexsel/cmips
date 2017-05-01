@@ -1,8 +1,15 @@
 	##
 	## Cause a TLB miss on a STORE, then copy a mapping from page table
-	##   cause a second miss by overwriting TLB[7] which maps ROM
+	##   cause a second miss by overwriting TLB[2] which maps ROM
 	##
+	## In order: (i) store causes a TLBmiss on RAM mapping
+	##           (ii) handler changes mapping to cause a fetch TLBmiss
+	##           (iii) store faults again, this time on fetch
+	##           (iv) handler fixes RAM mappings
+	##           (v)  store completes
 	##
+        ## $21 flags if 1st or 2nd fault.  Changes TLB only on 1st fault.
+	##	
 	## EntryHi     : EntryLo0           : EntryLo1
 	## VPN2 g ASID : PPN0 ccc0 d0 v0 g0 : PPN1 ccc1 d1 v1 g1
 
@@ -57,31 +64,45 @@ _start:	li   $k0, 0x10000000
         .set noreorder
         .set noat
 
-_excp:  mfc0 $k1, c0_context
-        lw   $k0, 0($k1)           # k0 <- TP[Context.lo]
-        lw   $k1, 8($k1)           # k1 <- TP[Context.hi]
+	## $24 and $25 used as additional k's
+	## $21 as flag for 1st exception
+	
+_excp:	mfc0 $k1, c0_context
+        lw   $k0, 0($k1)         # k0 <- TP[Context.lo]
+        lw   $k1, 8($k1)         # k1 <- TP[Context.hi]
         mtc0 $k0, c0_entrylo0    # EntryLo0 <- k0 = even element
         mtc0 $k1, c0_entrylo1    # EntryLo1 <- k1 = odd element
+
+	li   $21, 1		 # mark 1st exception
 	##
 	## cause, on purpose, another miss on 2nd ROM mapping
 	##   exchange mappings for TLB[2] and TLB[7]
 	##
-	mfc0 $k1, c0_cause
-	li   $k0, 0x000c 	# code for TLBS - 0xc
-	andi $k1, $k1, 0x000f
-	bne  $k0, $k1, _ex_n
+	mfc0 $25, c0_cause
+	li   $24, 0x000c 	 # code for TLBS - 0xc
+	andi $25, $25, 0x000f
+	bne  $24, $25, _ex_n
 	nop
-	li   $k0, 2
-	mtc0 $k0, c0_index
+	li   $24, 2
+	mtc0 $24, c0_index
+
+        ##
+        ## is this the 1st exception?  if yes, change TLB for 2nd fault
+        ##
+	bne  $21, $zero, _ex_w	## no, return
+	nop                     ## yes, change TLB mapping
+	mfc0 $25, c0_entryhi	##   to avoid duplicated mappings
+	addi $25, $25, 0x2000
+	mtc0 $25, c0_entryhi
 	ehb
 	j    _ex_w
 	nop
 	
-_ex_n:	li   $k0, 7
-	mtc0 $k0, c0_index
+_ex_n:	li   $24, 7
+	mtc0 $24, c0_index
 	ehb
 
-_ex_w:	tlbwi                      # update TLB
+_ex_w:	tlbwi                    # update TLB
 	li   $30, 't'
 	sw   $30, x_IO_ADDR_RANGE($20)	
 	li   $30, 'h'
@@ -107,7 +128,7 @@ _excp_0100:
         nop
         nop
         nop
-        wait 0x02
+        wait 0x01
         nop
         .org x_EXCEPTION_0180,0
 _excp_0180:
@@ -154,7 +175,10 @@ _excp_BFC0:
 	.set PTbase, x_DATA_BASE_ADDR
 	.ent main
 main:	la   $20, x_IO_BASE_ADDR
-	
+
+	## $21 flags 1st or 2nd exception.  Changes TLB only on 1st fault
+        li $21, 0
+
 	##
 	## setup a PageTable
 	##
@@ -235,7 +259,7 @@ main:	la   $20, x_IO_BASE_ADDR
 	add  $8, $9, $8     # change tag
 	mtc0 $8, c0_entryhi
 
-	tlbwi		    # and write it back to TLB (Index = 6)
+	tlbwi		    # and write it back to TLB (Index = 7)
 
 	nop
 	nop
@@ -252,7 +276,7 @@ main:	la   $20, x_IO_BASE_ADDR
 	## move execution to 3rd ROM page at TLB[2]
 	.org x_INST_BASE_ADDR+2*4096,0
 	
-far:li  $15, (x_DATA_BASE_ADDR + 6*4096) # VPN2
+far: 	li  $15, (x_DATA_BASE_ADDR + 6*4096) # VPN2
 
 last:	sw  $16, 0($15)
 	nop

@@ -1,8 +1,17 @@
 	##
 	## Cause a TLB miss on a LOAD, then copy a mapping from page table
-	##   cause a second miss by overwriting TLB[7] which maps ROM
+	##   cause a second miss by overwriting TLB[2] which maps ROM
 	##
 	## faulting LOAD is on a branch delay slot
+	##
+	## In order: (i) mains causes a TLBmiss on a load on a delay slot
+	##           (ii) handler fixes TLBmiss and
+	##           (iii) changes TLB[2] to cause a 2nd fault, on the jal
+	##           (iv) jal will cause TLBmiss, as TLB[2] was changed
+	##           (v) handler fixes TLB[2]
+	##           (vi) jal succeeds, lw succeeds.
+	##
+	## $21 flags if 1st or 2nd fault.  Changes TLB only on 1st fault.
 	##
 	## EntryHi     : EntryLo0           : EntryLo1
 	## VPN2 g ASID : PPN0 ccc0 d0 v0 g0 : PPN1 ccc1 d1 v1 g1
@@ -44,17 +53,31 @@ _start:	li   $k0, 0x10000000
 _excp:  mfc0 $k1, c0_context
         lw   $k0, 0($k1)           # k0 <- TP[Context.lo]
         lw   $k1, 8($k1)           # k1 <- TP[Context.hi]
-        mtc0 $k0, c0_entrylo0    # EntryLo0 <- k0 = even element
-        mtc0 $k1, c0_entrylo1    # EntryLo1 <- k1 = odd element
+        mtc0 $k0, c0_entrylo0      # EntryLo0 <- k0 = even element
+        mtc0 $k1, c0_entrylo1      # EntryLo1 <- k1 = odd element
+	tlbwi
+
+	##
+	## is this the 1st exception?  yes, change TLB for 2nd fault
+	##
+	bne  $21, $zero, _exend    # no, return 
+	nop
+	addi $21, $21, 1           # flag 1st exception taken
+
 	##
 	## cause, on purpose, another miss on 2nd ROM mapping
 	##
+	##   when jal is re-executed, will suffer 2nd TLB miss
+	##
+	mfc0 $k1, c0_entryhi       # change tag, to avoid replicated entries
+	addi $k1, $k1, 0x2000
+	mtc0 $k1, c0_entryhi
 	li   $k0, 2
 	mtc0 $k0, c0_index
 	ehb
-        tlbwi                      # update TLB
+	tlbwi                      # update TLB
 	
-	li   $30, 'h'
+_exend:	li   $30, 'h'
 	sw   $30, x_IO_ADDR_RANGE($20)	
 	li   $30, 'e'
 	sw   $30, x_IO_ADDR_RANGE($20)	
@@ -64,7 +87,7 @@ _excp:  mfc0 $k1, c0_context
 	sw   $30, x_IO_ADDR_RANGE($20)
 	li   $30, '\n'
 	sw   $30, x_IO_ADDR_RANGE($20)
-	mfc0 $k1, c0_cause		# clear CAUSE
+	# mfc0 $k1, c0_cause		# clear CAUSE
 
 	eret
         .end _excp
@@ -140,6 +163,9 @@ _PageTable:
 
 	.ent main
 main:	la   $20, x_IO_BASE_ADDR
+
+	## $21 flags 1st or 2nd exception.  Changes TLB only on 1st fault
+	li $21, 0
 	
 	##
 	## setup a PageTable
@@ -221,7 +247,7 @@ chnge3:	li   $5, 7           # 3rd RAM mapping
 	add  $8, $9, $8     # change tag
 	mtc0 $8, c0_entryhi
 	ehb
-	tlbwi		    # and write it back to TLB (Index = 6)
+	tlbwi		    # and write it back to TLB (Index = 7)
 
 	nop
 	nop
@@ -333,9 +359,11 @@ there:	li   $30, 't'
 	## adjust return address to catch error in EPC
 	##
 	la   $31, goBack
+	nop
+	nop
 	jr   $31
 	nop
-	
+
 	
 _exit:	nop
 	nop

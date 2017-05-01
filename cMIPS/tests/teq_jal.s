@@ -4,7 +4,6 @@
 	.align 2
 	.set noreorder        # assembler should not reorder instructions
 	.global _start
-	.global _exit
 	.global exit
 	.ent    _start
 
@@ -76,10 +75,10 @@ _excp_180:
 	addi  $k1, $k1, 8
 	mtc0  $k1, c0_epc
 	
-	mfc0  $k0, c0_status		# go back to user mode, EXL=0
-	li    $k1, -16                  # ffff.fff0
-	and   $k0, $k0, $k1
-	mtc0  $k0, c0_status
+	#mfc0  $k0, c0_status		# go back to user mode, EXL=0
+	#li    $k1, -16                  # ffff.fff0
+	#and   $k0, $k0, $k1
+	#mtc0  $k0, c0_status
 
 	eret
 	.end _excp_180
@@ -90,7 +89,7 @@ _excp_180:
 excp_200:			
 _excp_200:
 	##
-	## this exception should not happen
+	## this exception should NOT happen
 	##
 	li   $28,-1
 	sw   $28, 0($15)       # signal exception to std_out
@@ -129,10 +128,10 @@ main:	la    $15, x_IO_BASE_ADDR # print out address (simulator's stdout)
 	##
 	## does a JAL behave?  Is $ra updated or the instruction is anulled?
 	##
-	li    $9, '\n'
-	sw    $9, x_IO_ADDR_RANGE($15)     # print out '\n' to separate tests
+	li  $9, '\n'
+	sw  $9, x_IO_ADDR_RANGE($15)     # print out '\n' to separate tests
 	li  $31, '!'		# put wrong return address in $31
-	teq $0,$0		#  then trap
+	teq $0, $0		#  then trap
 	jal wrong1		#    then DO NOT execute the JAL
 	nop			#    as handler skips that instruction
 	nop

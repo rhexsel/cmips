@@ -32,6 +32,7 @@ OPTIONS:
    -h    Show this message
    -O n  Optimization level, defaults to n=0 {0,1,2,3}
    -v    Verbose, creates memory map: SOURCE.map
+   -z    dis-assembler shows all zeroes/nops
    -n    when verbose, display register names instead of numbers
    -mif  Generate output file ROM.mif for Altera's FPGAs
 EOF
@@ -59,6 +60,7 @@ verbose=false
 names=false
 unset mem_map
 level=0
+zeroes=
 
 
 bin="${tree}"/bin
@@ -86,6 +88,8 @@ while true ; do
         -v) verbose=true
             ;;
         -n) names=true
+            ;;
+        -z) zeroes=-z
             ;;
         -mif | -syn ) miffile=true
             ;;
@@ -147,7 +151,7 @@ dat=data.bin
   mips-objcopy -S -j .data -j .rodata -j .PT -O binary $elf $dat &&\
   chmod a-x $bin $dat &&\
   if [ $verbose = true ] ; then
-    mips-objdump -z -D -EL  $reg_names  --show-raw-insn \
+    mips-objdump $zeroes -D -EL  $reg_names  --show-raw-insn \
         --section .text --section .data --section .rodata --section .bss  $elf
   fi &&\
   if [ $miffile = true ] ; then
@@ -155,4 +159,3 @@ dat=data.bin
   fi
 
 #        --section .reginfo
-

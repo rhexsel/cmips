@@ -16,7 +16,7 @@
 
 #include "cMIPS.h"
 
-#include "uart_defs.c"
+#include "uart_defs.h"
 
 #define U_DATA 0
 #define U_FLAG 1

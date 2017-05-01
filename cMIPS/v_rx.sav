@@ -1,11 +1,11 @@
 [*]
 [*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
-[*] Mon Apr 24 11:28:15 2017
+[*] Sun Apr 30 16:40:13 2017
 [*]
-[dumpfile] "/home/roberto/cMIPS/v_cMIPS.vcd"
-[dumpfile_mtime] "Mon Apr 24 11:27:52 2017"
-[dumpfile_size] 14361678
-[savefile] "/home/roberto/cMIPS/v_rx.sav"
+[dumpfile] "/home/roberto/cmips/cMIPS/v_cMIPS.vcd"
+[dumpfile_mtime] "Sun Apr 30 16:39:04 2017"
+[dumpfile_size] 57769933
+[savefile] "/home/roberto/cmips/cMIPS/v_rx.sav"
 [timestart] 0
 [size] 1233 881
 [pos] -1 -1
@@ -75,9 +75,9 @@ u_simple_uart.u_uart.rx_dbg_st[31:0]
 @28
 u_simple_uart.u_uart.s_rx
 @820
-u_simple_uart.u_uart.rxreg[7:0]
+u_simple_uart.u_uart.received[7:0]
 @23
-u_simple_uart.u_uart.rxreg[7:0]
+u_simple_uart.u_uart.received[7:0]
 @28
 u_simple_uart.u_uart.sta_recv_sto[9:0]
 u_simple_uart.u_uart.rxdat

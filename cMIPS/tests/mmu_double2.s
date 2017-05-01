@@ -3,8 +3,15 @@
 	##   refill handler causes double fault, then fix it at
 	##   general exception handler
 	##
-	## Ensure LW in delay slot, prior to fault, completes
+	## Ensures LW in delay slot, prior to fault, completes
 	##
+        ## In order: (i) main causes a TLBmiss on fetching destination of JAL
+        ##               instruction in JAL's delay slot must complete
+        ##           (ii) main made TLB entry for PageTable invalid
+        ##                TLBmiss handler goes into double fault
+        ##           (iii) general exception handler fixes mapping for PT
+        ##           (iv) after eret, fetch at JAL's destination completes 
+        ##
 	##
 	## EntryHi     : EntryLo0           : EntryLo1
 	## VPN2 g ASID : PPN0 ccc0 d0 v0 g0 : PPN1 ccc1 d1 v1 g1
@@ -67,7 +74,7 @@ _excp_000:  mfc0 $k1, c0_context
         ehb
         tlbwi                      # write indexed for not overwriting PTable
 	li   $30, 't'
-	sw   $30, x_IO_ADDR_RANGE($20)	
+	sw   $30, x_IO_ADDR_RANGE($20)	# then\n
 	li   $30, 'h'
 	sw   $30, x_IO_ADDR_RANGE($20)	
 	li   $30, 'e'
@@ -104,17 +111,18 @@ _excp_0100:
         .set noreorder
         .set noat
 
+	##
         ## EntryHi holds VPN2(31..13), probe the TLB for the offending entry
 	## VPN2 g ASID : PPN0 ccc0 d0 v0 g0 : PPN1 ccc1 d1 v1 g1
-_excp_180: tlbp         # probe for the guilty entry
-        mfc0 $k1, c0_cause	# clear CAUSE
-        tlbr            # it will surely hit, just use Index to point at it
+	##
+_excp_180: tlbp			# probe for the guilty entry
+        tlbr			# it will hit, just use Index to point at it
         mfc0 $k1, c0_entrylo0
         ori  $k1, $k1, 0x0002   # make V=1
         mtc0 $k1, c0_entrylo0
         tlbwi                   # write entry back
 
-        li   $30, 'h'
+        li   $30, 'h'			# here\n
         sw   $30, x_IO_ADDR_RANGE($20)
 	li   $30, 'e'
         sw   $30, x_IO_ADDR_RANGE($20)
@@ -166,6 +174,9 @@ _excp_BFC0:
 	.ent main
 main:	la   $20, x_IO_BASE_ADDR
 	
+	la   $4, PTbase		# base of RAM
+	mtc0 $4, c0_context	# load Context with PTbase
+	
 	##
 	## setup a PageTable
 	##
@@ -174,9 +185,7 @@ main:	la   $20, x_IO_BASE_ADDR
 	## PPN0 ccc0 d0 v0 g0 : PPN1 ccc1 d1 v1 g1
 	##
 
-	la  $4, PTbase
-
-	li   $5, 0            # 1st ROM mapping
+	li   $5, 0 		# 1st ROM mapping
 	mtc0 $5, c0_index
 	nop
 	tlbr
@@ -190,7 +199,7 @@ main:	la   $20, x_IO_BASE_ADDR
 	sw  $7, 8($4)
 	sw  $0, 0xc($4)
 
-	li $5, 2              # 2nd ROM mapping
+	li $5, 2              	# 2nd ROM mapping
 	mtc0 $5, c0_index
 	nop
 	tlbr
@@ -204,9 +213,7 @@ main:	la   $20, x_IO_BASE_ADDR
 	sw  $7, 0x18($4)
 	sw  $0, 0x1c($4)
 
-	# load Context with PTbase
-	mtc0 $4, c0_context
-	
+
 	## change mapping for 2nd ROM TLB entry, thus causing a miss
 
 	li   $9, 0x2000
@@ -223,6 +230,7 @@ main:	la   $20, x_IO_BASE_ADDR
 	## make invalid TLB entry mapping the page table
 	##
         ## read tlb[4] (1st RAM mapping) and clear the V bit
+	##
 fix5:	li $5, 4
         mtc0 $5, c0_index
 
@@ -258,9 +266,9 @@ write:	la   $18, datum
 	##
 	
 jump:	jal  there
-	lw   $19, 0($18)	# this instr must complete
+	lw   $19, 0($18)	# this instruction must complete
 	
-	li   $19, 'a'
+	li   $19, 'a'		# and back again\n\n
 	sw   $19, x_IO_ADDR_RANGE($20)
 	li   $19, 'n'
 	sw   $19, x_IO_ADDR_RANGE($20)

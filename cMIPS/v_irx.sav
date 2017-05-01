@@ -1,11 +1,11 @@
 [*]
 [*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
-[*] Tue Apr 25 11:28:46 2017
+[*] Sun Apr 30 16:43:52 2017
 [*]
-[dumpfile] "/home/roberto/cMIPS/v_cMIPS.vcd"
-[dumpfile_mtime] "Tue Apr 25 11:26:53 2017"
-[dumpfile_size] 156523937
-[savefile] "/home/roberto/cMIPS/v_irx.sav"
+[dumpfile] "/home/roberto/cmips/cMIPS/v_cMIPS.vcd"
+[dumpfile_mtime] "Sun Apr 30 16:42:42 2017"
+[dumpfile_size] 57769933
+[savefile] "/home/roberto/cmips/cMIPS/v_irx.sav"
 [timestart] 0
 [size] 1493 1018
 [pos] -1 -1
@@ -21,8 +21,10 @@ clk
 u_core.pc[31:0]
 @28
 u_core.annul_twice
-u_simple_uart.irq
+@29
 u_core.interrupt_taken
+@28
+u_simple_uart.irq
 @200
 -    decode, reg fetch
 @22
@@ -63,9 +65,8 @@ u_core.wb_a_c[4:0]
 u_core.wb_c[31:0]
 @200
 -  UART
-@29
-u_simple_uart.u_uart.s_int
 @28
+u_simple_uart.u_uart.s_int
 u_simple_uart.u_uart.s_stat
 @22
 u_simple_uart.u_uart.status[7:0]
@@ -76,7 +77,7 @@ u_simple_uart.u_uart.ctrl[7:0]
 @28
 u_simple_uart.u_uart.s_rx
 @22
-u_simple_uart.u_uart.rxreg[7:0]
+u_simple_uart.u_uart.received[7:0]
 @28
 u_simple_uart.u_uart.s_tx
 @820

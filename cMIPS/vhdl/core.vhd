@@ -26,6 +26,7 @@ use work.p_wires.all;
 use work.p_memory.all;
 use work.p_exception.all;
 
+
 entity core is
   port (
     rst    : in    std_logic;
@@ -1433,15 +1434,21 @@ begin
   EX_wrmem_cond <= EX_wrmem
                    or BOOL2SL(abort_ref)  -- abort write if exception in MEM
                    or LL_SC_abort         -- SC is to be killed
-                   or ( BOOL2SL(nullify) and not(MM_is_delayslot) );
-                                          -- abort memWrite if exception in EX
-
+                   -- abort memWrite if exception in EX, but not in IF
+                   or ( BOOL2SL(nullify) and
+                        (MM_is_delayslot and not BOOL2SL(nullify_fetch)) )
+                   or ( BOOL2SL(nullify) and not BOOL2SL(nullify_fetch) );
+  -- check_this
+  
   EX_aVal_cond <= EX_aVal
                   or BOOL2SL(abort_ref)  -- abort ref if exception in MEM
                   or LL_SC_abort         -- SC is to be killed
-                  or ( BOOL2SL(nullify) and not(MM_is_delayslot) );
-                                         -- abort memRef if previous excep in EX
-
+                  -- abort memWrite if exception in EX, but not in IF
+                  or ( BOOL2SL(nullify) and
+                       (MM_is_delayslot and not BOOL2SL(nullify_fetch)) )
+                  or ( BOOL2SL(nullify) and not BOOL2SL(nullify_fetch) );
+  -- check_this
+  
   abort_ref <= (addrError or (tlb_exception and tlb_stage_mm));
 
 
@@ -1993,6 +2000,7 @@ begin
         i_stall    := '0';
         i_epc_update := '0';
         i_nullify    := TRUE;           -- nullify instructions in IF,RF,EX
+        exception_taken <= '1';
         if MM_is_delayslot = '1' then   -- instr is in delay slot
           i_epc_source  := EPC_src_WB;  -- WB_PC, re-execute branch/jump
           is_delayslot  <= WB_is_delayslot;
@@ -2079,8 +2087,11 @@ begin
         if RF_is_delayslot = '1' then       -- instr is in delay slot
           i_epc_source := EPC_src_EX;       -- EX_PC, re-execute branch/jump
           is_delayslot <= RF_is_delayslot;
+        elsif EX_is_delayslot = '1' then
+          i_epc_source := EPC_src_MM;       -- MM_PC              check_this
+          is_delayslot <= '0';
         else
-          i_epc_source := EPC_src_RF;       -- RF_PC
+          i_epc_source := EPC_src_RF;       -- RF_PC              check_this
           is_delayslot <= '0';
         end if;
         newSTATUS(STATUS_EXL) := '1';       -- at exception level
@@ -2088,7 +2099,7 @@ begin
         i_update_r      := cop0reg_STATUS;
         i_epc_update    := '0';
         i_nullify       := TRUE;            -- nullify instructions in IF,RF,EX
-        
+        exception_taken <= '1';        
 
       when exTLBrefillRD | exTLBrefillWR =>
         case is_exception is
@@ -2110,6 +2121,7 @@ begin
         i_update_r   := cop0reg_STATUS;
         i_epc_update := '0';
         i_nullify    := TRUE;           -- nullify instructions in IF,RF,EX
+        exception_taken <= '1';
         
       when exTLBdblFaultIF | exTLBinvalIF  =>
         ExcCode <= cop0code_TLBL;

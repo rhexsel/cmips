@@ -20,7 +20,7 @@ srcVHDL=${tree}/vhdl
 
 simulator="${tree}"/tb_cmips
 
-visual="${tree}"/v_cMIPS.vcd
+visual="${tree}"/cMIPS.vcd
 unset WAVE
 
 length=1

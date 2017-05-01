@@ -60,9 +60,3 @@
 	# reset: COUNTER stopped, use special interrVector, no interrupts
 	.set c0_cause_reset, 0x0880007c
 
-
-	.equ led_RED, 0x4000
-	.equ led_GRE, 0x2000
-	.equ led_BLU, 0x1000
-	.equ led_OFF, 0x0FFF
-

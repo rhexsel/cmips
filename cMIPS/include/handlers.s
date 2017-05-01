@@ -92,8 +92,8 @@ _uart_buff: .space 16*4 # up to 16 registers to be saved here
 	# _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=$v0, [3]=$v1,
 	#           [4]=$ra, [5]=$a0, [6]=$a1, [7]=$a2, [8]=$a3
 	
-	.set UART_rx_irq,0x08
-	.set UART_tx_irq,0x10
+	.set U_rx_irq,0x08
+	.set U_tx_irq,0x10
 
 	.equ UCTRL,0	# UART registers
 	.equ USTAT,4
@@ -111,7 +111,7 @@ UARTinterr:
 	# While you are developing the complete handler, uncomment the
 	#   line below
 	#
-	# .include "../tests/handlerUART.s"
+	#  .include "../tests/handlerUART.s"
 	#
 	# Your new handler should be self-contained and do the
 	#   return-from-exception.  To do that, copy the lines below up
@@ -131,7 +131,7 @@ UARTinterr:
 	lw    $k1, USTAT($a0) 	    # Read status
 	sw    $k1, 0*4($k0)         #  and save UART status to memory
 	
-	li    $a1, UART_rx_irq	    # remove interrupt request
+	li    $a1, U_rx_irq	    # remove interrupt request
 	sw    $a1, UINTER($a0)
 	
 	and   $a1, $k1, $a1         # Is this reception?

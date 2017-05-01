@@ -3,8 +3,14 @@
 	##   refill handler causes double fault, then fix it at
 	##   general exception handler
 	##
-	## Ensure instruction in delay slot, prior to fault, completes
+	## Ensures instruction in delay slot, prior to fault, completes
 	##
+	## In order: (i) main causes a TLBmiss on fetching destination of JAL
+	##               instruction in JAL's delay slot must complete
+	##           (ii) main made TLB entry for PageTable invalid
+	##                TLBmiss handler goes into double fault
+	##           (iii) general exception handler fixes mapping for PT
+	##           (iv) after eret, fetch at JAL's destination completes 
 	##
 	## EntryHi     : EntryLo0           : EntryLo1
 	## VPN2 g ASID : PPN0 ccc0 d0 v0 g0 : PPN1 ccc1 d1 v1 g1
@@ -60,14 +66,14 @@ _start:	li   $k0, 0x10000000
         .set noat
 
 _excp_000:  mfc0 $k1, c0_context
-        lw   $k0, 0($k1)           # k0 <- TP[Context.lo]
-        lw   $k1, 8($k1)           # k1 <- TP[Context.hi]
-        mtc0 $k0, c0_entrylo0    # EntryLo0 <- k0 = even element
-        mtc0 $k1, c0_entrylo1    # EntryLo1 <- k1 = odd element
+        lw   $k0, 0($k1)        # k0 <- TP[Context.lo]
+        lw   $k1, 8($k1)        # k1 <- TP[Context.hi]
+        mtc0 $k0, c0_entrylo0	# EntryLo0 <- k0 = even element
+        mtc0 $k1, c0_entrylo1   # EntryLo1 <- k1 = odd element
         ehb
-        tlbwi                      # write indexed for not overwriting PTable
+        tlbwi                   # write indexed for not overwriting PTable
 	li   $30, 't'
-	sw   $30, x_IO_ADDR_RANGE($20)	
+	sw   $30, x_IO_ADDR_RANGE($20)	# then\n
 	li   $30, 'h'
 	sw   $30, x_IO_ADDR_RANGE($20)	
 	li   $30, 'e'
@@ -104,15 +110,15 @@ _excp_0100:
 
         ## EntryHi holds VPN2(31..13), probe the TLB for the offending entry
 	## VPN2 g ASID : PPN0 ccc0 d0 v0 g0 : PPN1 ccc1 d1 v1 g1
-_excp_180: tlbp         # probe for the guilty entry
-        mfc0 $k1, c0_cause	# clear CAUSE
-        tlbr            # it will surely hit, just use Index to point at it
+_excp_180:
+	tlbp                    # probe for the offending entry
+        tlbr            	# it will hit, just use Index to point at it
         mfc0 $k1, c0_entrylo0
         ori  $k1, $k1, 0x0002   # make V=1
         mtc0 $k1, c0_entrylo0
         tlbwi                   # write entry back
 
-        li   $30, 'h'
+        li   $30, 'h'			# here\n
         sw   $30, x_IO_ADDR_RANGE($20)
 	li   $30, 'e'
         sw   $30, x_IO_ADDR_RANGE($20)
@@ -171,9 +177,12 @@ main:	la   $20, x_IO_BASE_ADDR
 	## PPN0 ccc0 d0 v0 g0 : PPN1 ccc1 d1 v1 g1
 	##
 
-	la  $4, PTbase
+	la  $4, PTbase		# base od RAM
 
-	li   $5, 0            # 1st ROM mapping
+	# load Context with PTbase
+	mtc0 $4, c0_context	# base of RAM
+	
+	li   $5, 0            	# 1st ROM mapping
 	mtc0 $5, c0_index
 	nop
 	tlbr
@@ -187,7 +196,7 @@ main:	la   $20, x_IO_BASE_ADDR
 	sw  $7, 8($4)
 	sw  $0, 0xc($4)
 
-	li $5, 2              # 2nd ROM mapping
+	li $5, 2              	# 2nd ROM mapping
 	mtc0 $5, c0_index
 	nop
 	tlbr
@@ -200,9 +209,6 @@ main:	la   $20, x_IO_BASE_ADDR
 	sw  $0, 0x14($4)
 	sw  $7, 0x18($4)
 	sw  $0, 0x1c($4)
-
-	# load Context with PTbase
-	mtc0 $4, c0_context
 	
 	## change mapping for 2nd ROM TLB entry, thus causing a miss
 
@@ -210,10 +216,12 @@ main:	la   $20, x_IO_BASE_ADDR
 	sll  $9, $9, 8
 
 	mfc0 $8, c0_entryhi
-	add  $8, $9, $8     # change tag
+	add  $8, $9, $8     	# change tag
 	mtc0 $8, c0_entryhi
 
-	tlbwi		    # and write it back to TLB
+	li   $5, 2             	# 2nd ROM mapping
+	mtc0 $5, c0_index
+	tlbwi			# and write it back to TLB
 
 
 	##
@@ -238,12 +246,12 @@ fix5:	li $5, 4
 	nop
 	nop
 
-	li   $19, '?' 		# try to catch an error in EPC updates
+	li   $19, '?' 		# try to catch an error in EPC updates ?=0x3f
 	##
-	## cause a TLB miss on a fetch
+	## cause a TLB miss on fetching the JAL
 	##
 jump:	jal  there
-	li   $19, 't'  		# this instr must be executed
+	li   $19, 't'  		# this instr must be executed t=0x74
 	
 	li   $19, 'a'
 	sw   $19, x_IO_ADDR_RANGE($20)
@@ -291,7 +299,7 @@ _exit:	nop
 	
 	.org (x_INST_BASE_ADDR + 2*4096), 0
 
-there:	# li   $19, 't'  # this instr went to de delay slot
+there:	# li   $19, 't'  # this instr is inside of the delay slot
 	sw   $19, x_IO_ADDR_RANGE($20)
 	li   $19, 'h'
 	sw   $19, x_IO_ADDR_RANGE($20)

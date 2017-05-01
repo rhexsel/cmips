@@ -148,10 +148,11 @@ dat=data.bin
 
 if [ $verbose = true ]; then  memory_map="-Map ${inp}.map" ; fi
 
+cflags="-mcode-readable=no -mno-gpopt"
 
-(mips-gcc -O${level} $warn -DcMIPS -mno-gpopt -I"${include}" \
+(mips-gcc -O${level} $warn -DcMIPS $cflags -I"${include}" \
           -S ${src} $S -o ${asm}  ||  exit 1) && \
-mips-gcc -O1 -DcMIPS -mno-gpopt -I"${include}" -S ${c_io}.c -o ${c_io}.s $S &&\
+mips-gcc -O1 -DcMIPS $cflags -I"${include}" -S ${c_io}.c -o ${c_io}.s $S &&\
 mips-as -O1 -EL -mips32 -I "${include}" -o ${obj} ${asm} && \
 mips-as -O1 -EL -mips32 -I "${include}" -o ${c_start}.o ${c_start}.s && \
 mips-as -O1 -EL -mips32 -I "${include}" -o ${c_hndlrs}.o ${c_hndlrs}.s && \

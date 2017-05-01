@@ -7,7 +7,6 @@
 	.align 2
 	.set noreorder        # assembler should not reorder instructions
 	.global _start
-	.global _exit
 	.global exit
 	.ent    _start
 
@@ -78,13 +77,10 @@ _excp_180:
         li    $5, 0
         addiu $7, $7, -1                # decrement iteration control
 
-        mfc0  $k1, c0_epc             # move EPC forward to next instruction
+        mfc0  $k1, c0_epc		# move EPC forward to next instruction
         addi  $k1, $k1, 4
         mtc0  $k1, c0_epc
-        mfc0  $k0, c0_status          # go back into user mode
-        ori   $k0, $k0, 0x0010
-        mtc0  $k0, c0_status
-excp_180ret:
+	ehb
         eret
         .end _excp_180
 
@@ -98,10 +94,10 @@ _excp_200:
         ##
         mfc0 $k0, c0_cause	# signal exception to std_out
         li   $k1, 'e'
+        sw   $k1, x_IO_ADDR_RANGE($15)	# exc\n
+        li   $k1, 'x'
         sw   $k1, x_IO_ADDR_RANGE($15)
-        li   $k1, 'r'
-        sw   $k1, x_IO_ADDR_RANGE($15)
-        li   $k1, 'r'
+        li   $k1, 'c'
         sw   $k1, x_IO_ADDR_RANGE($15)
         li   $k1, '\n'
         sw   $k1, x_IO_ADDR_RANGE($15)
