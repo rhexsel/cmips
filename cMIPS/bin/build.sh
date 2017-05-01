@@ -137,8 +137,8 @@ src="aux.vhd altera.vhd macnica.vhd cache.vhd instrcache.vhd sdram.vhd ram.vhd r
 
 # if never imported sources, do it now
 if [ ! -f .last_import ] ; then
-   ghdl -std=02 -i ${pkg}
-   ghdl -std=02 -i ${src}
+   ghdl -i ${pkg}
+   ghdl -i ${src}
    touch .last_import
 fi
 
