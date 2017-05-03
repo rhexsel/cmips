@@ -68,7 +68,7 @@ extCounter:
 	#
 	.bss 
         .align  2
-	.global Ud
+	.global Ud, tx_has_started
 
 	.equ RXHD,0
 	.equ RXTL,4
@@ -88,10 +88,12 @@ tx_q:	.space 16	# transmission queue
 nrx:	.space 4	# characters in RX_queue
 ntx:	.space 4	# spaces left in TX_queue
 
+tx_has_started: .space 4
+
 _uart_buff: .space 16*4 # up to 16 registers to be saved here
 	# _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=$v0, [3]=$v1,
 	#           [4]=$ra, [5]=$a0, [6]=$a1, [7]=$a2, [8]=$a3
-	
+
 	.set U_rx_irq,0x08
 	.set U_tx_irq,0x10
 
