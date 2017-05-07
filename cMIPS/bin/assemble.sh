@@ -30,7 +30,7 @@ usage:  $0 [options] SOURCE.s
 
 OPTIONS:
    -h    Show this message
-   -O n  Optimization level, defaults to n=0 {0,1,2,3}
+   -O n  Optimization level, defaults to n=0 {0,1,2,3,s}
    -v    Verbose, creates memory map: SOURCE.map
    -z    dis-assembler shows all zeroes/nops
    -n    when verbose, display register names instead of numbers
@@ -84,6 +84,8 @@ while true ; do
 	-O2) level=2
 	    ;;
 	-O3) level=3
+	    ;;
+	-Os) level=s
 	    ;;
         -v) verbose=true
             ;;

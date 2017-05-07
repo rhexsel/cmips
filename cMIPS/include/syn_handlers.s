@@ -59,10 +59,6 @@ extCounter:
 	# lw  $a1, 1*4($k1)
 	#----------------------------------
 	
-	mfc0  $k0, c0_status	    # Read STATUS register
-	ori   $k0, $k0, M_StatusIEn #   but do not modify its contents
-	mtc0  $k0, c0_status	    #   except for re-enabling interrupts
-	ehb
 	eret			    # Return from interrupt
 	.end extCounter
 	#----------------------------------------------------------------
@@ -72,9 +68,19 @@ extCounter:
 	# interrupt handler for UART attached to IP6=HW4
 	# for UART's address see vhdl/packageMemory.vhd
 	#
-	.global Ud
 	.bss 
         .align  2
+	.global Ud
+
+	.equ RXHD,0
+	.equ RXTL,4
+	.equ RX_Q,8
+	.equ TXHD,24
+	.equ TXTL,28
+	.equ TX_Q,32
+	.equ NRX,48
+	.equ NTX,52
+
 Ud:
 rx_hd:	.space 4	# reception queue head index
 rx_tl:	.space 4	# tail index
@@ -85,57 +91,73 @@ tx_q:	.space 16	# transmission queue
 nrx:	.space 4	# characters in RX_queue
 ntx:	.space 4	# spaces left in TX_queue
 
-_uart_buff: .space 16*4 # up to 16 registers to be saved here
+	.global tx_has_started
+tx_has_started:	.space 4 # synchronizes transmission with Putc()
 
-	# _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=data_inp, [3]=new,
+_uart_buff: .space 16*4 # up to 16 registers to be saved here
+	# _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=$v0, [3]=$v1,
 	#           [4]=$ra, [5]=$a0, [6]=$a1, [7]=$a2, [8]=$a3
 
 	.set U_rx_irq,0x08
 	.set U_tx_irq,0x10
-
+	.equ UCTRL,0    # UART registers
+	.equ USTAT,4
+	.equ UINTER,8
+	.equ UDATA,12
+	
 	.text
 	.set    noreorder
 	.global UARTinterr
 	.ent    UARTinterr
 	
 UARTinterr:
-	lui   $k0, %hi(_uart_buff)  # get buffer's address
+
+	#----------------------------------------------------------------
+	# While you are developing the complete handler, uncomment the
+	#   line below
+	#
+         .include "../tests/handlerUART.s"
+	#
+	# Your new handler should be self-contained and do the
+	#   return-from-exception.  To do that, copy the lines below up
+	#   to, but excluding, ".end UARTinterr", to yours handlerUART.s.
+	#----------------------------------------------------------------
+
+_u_rx:	lui   $k0, %hi(_uart_buff)  # get buffer's address
 	ori   $k0, $k0, %lo(_uart_buff)
 	
 	sw    $a0, 5*4($k0)	    # save registers $a0,$a1, others?
 	sw    $a1, 6*4($k0)
+	sw    $a2, 7*4($k0)
 
 	lui   $a0, %hi(HW_uart_addr)# get device's address
 	ori   $a0, $a0, %lo(HW_uart_addr)
 
-	lw    $k1, 0($a0) 	    # Read status, remove interrupt request
+	lw    $k1, USTAT($a0) 	    # Read status
 	nop
 	sw    $k1, 0*4($k0)         #  and save UART status to memory
+
+	li    $a1, U_rx_irq         # remove interrupt request
+	sw    $a1, UINTER($a0)
 	
-	#----------------------------------
-	# while you are developing the complete handler,
-	#    uncomment the line below and comment out lines up to UARTret
-	# .include "../tests/handlerUART.s"
-	#----------------------------------
-	
-	andi  $a1, $k1, U_rx_irq    # Is this reception?
+	and   $a1, $k1, $a1	    # Is this reception?
 	beq   $a1, $zero, UARTret   #   no, ignore it and return
 	nop
 
 	# handle reception
-	lw    $a1, 4($a0) 	    # Read data from device
-	nop                         #   and store it to UART's buffer
-	sw    $a1, 2*4($k0)         #   and return from interrupt
+	lw    $a1, UDATA($a0) 	    # Read data from device
+	lui   $a2, %hi(Ud)          # get address for data & flag
+	ori   $a2, $a2, %lo(Ud)
+
+	sw    $a1, 0*4($a2)         #   and return from interrupt
 	addiu $a1, $zero, 1
-	sw    $a1, 3*4($k0)         # Signal new arrival 
+	sw    $a1, 1*4($a2)	    # set flag to signal new arrival 
 
 UARTret:
+	lw    $a2, 7*4($k0)
 	lw    $a1, 6*4($k0)         # restore registers $a0,$a1, others?
 	lw    $a0, 5*4($k0)
 
-	mfc0  $k0, c0_status	    # Read STATUS register
-	ori   $k0, $k0, M_StatusIEn #   but do not modify its contents
-	mtc0  $k0, c0_status	    #   except for re-enabling interrupts
 	eret			    # Return from interrupt
 	.end UARTinterr
 	#----------------------------------------------------------------
@@ -174,8 +196,10 @@ startCount:
 	lui  $v1, 0xf7ff
 	ori  $v1, $v1, 0xffff
         and  $v0, $v0, $v1
-	jr   $ra
 	mtc0 $v0, c0_cause
+	ehb
+	jr   $ra
+	nop
 	.end    startCount
 	#----------------------------------------------------------------
 
@@ -223,7 +247,7 @@ enableInterr:
 	mfc0  $v0, c0_status	    # Read STATUS register
 	ori   $v0, $v0, 1           #   and enable interrupts
 	mtc0  $v0, c0_status
-	nop
+	ehb
 	jr    $ra                   # return updated STATUS
 	nop
 	.end enableInterr
@@ -234,7 +258,7 @@ disableInterr:
 	addiu $v1, $zero, -2        #   and disable interrupts
 	and   $v0, $v0, $v1         # -2 = 0xffff.fffe
 	mtc0  $v0, c0_status
-	nop
+	ehb
 	jr    $ra                   # return updated STATUS
 	nop
 	.end disableInterr

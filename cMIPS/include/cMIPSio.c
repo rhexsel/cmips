@@ -396,9 +396,9 @@ void LCDshort(unsigned short n) {
 void LCDbyte(unsigned char n) {
   int k;
 
-  k = (n     >>4);
+  k = (n>>4);
   LCDput( conv(k) );
-  k = (n<< 4)>>4;
+  k = (n<<4)>>4;
   LCDput( conv(k) );
 }
 

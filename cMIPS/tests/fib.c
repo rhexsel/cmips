@@ -7,13 +7,14 @@
  */
 
 /*---------------------------------------------------------------------------*/
-#include "cMIPS.h"
 
 #ifndef cMIPS
   #include <stdio.h>
+  #define SEQ_SZ 100
+#else
+  #include "cMIPS.h"
+  #define SEQ_SZ 10
 #endif
-
-#define SEQ_SZ 10
 
 
 /*---------------------------------------------------------------------------*/
@@ -39,7 +40,7 @@ void myprint(unsigned int* buf, unsigned int n) {
 #ifdef cMIPS
     print(buf[i]);   // 0x001 001 002 003 005 008 00d 015 022 0x037 15.275ns
 #else
-    printf("%03x ",buf[i]); // 0x001 001 002 003 005 008 00d 015 022 0x037
+    printf("%08x\n",buf[i]); // 0x001 001 002 003 005 008 00d 015 022 0x037
 #endif
   }
 }

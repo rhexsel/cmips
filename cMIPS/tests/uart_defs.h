@@ -22,11 +22,14 @@ typedef struct status {  // status register fields (uses only ls byte)
 
 typedef struct interr  { // interrupt clear bits (uses only ls byte)
   unsigned int ign : 24, // ignore uppermost 3 bytes
-    ign3m   : 3,         // bits 7,6,5 ignored
+    ign1    : 1,         // bit 7 ignored
+    setTX   : 1,         // set   IRQ on TX buffer empty (bit 6)
+    setRX   : 1,         // set   IRQ on RX buffer full (bit 5)
     clrTX   : 1,         // clear IRQ on TX buffer empty (bit 4)
     clrRX   : 1,         // clear IRQ on RX buffer full (bit 3)
-    ign3l   : 3;         // bits 2,1,0 ignored
+    ign3    : 3;         // bits 2,1,0 ignored
 } Tinterr;
+
 
 typedef struct serial {
   Tcontrol  ctl;        // read-write,  address is (int *)IO_UART_ADDR

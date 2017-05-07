@@ -26,7 +26,7 @@ void main(void) {
 
     do {
 
-      if ( (new=readCounter()) > old) {
+      if ( (new = readCounter()) > old) {
 	increased = increased & TRUE;
 	old = new;
 	// print(new);          // print current count, not for automated tests

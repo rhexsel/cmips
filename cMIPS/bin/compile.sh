@@ -31,7 +31,7 @@ usage:	$0 [options] source.c
 
 OPTIONS:
    -h    Show this message
-   -O n  Optimization level, defaults to n=1 {0,1,2,3}
+   -O n  Optimization level, defaults to n=1 {0,1,2,3,s}
    -v    Verbose, creates memory map: source.map
    -n    when verbose, display register numbers instead of names
    -W    Pass -Wall on to GCC
@@ -67,18 +67,20 @@ level=1
 while true ; do
 
     case "$1" in
-        -h) usage ; exit 1
+        -h ) usage ; exit 1
             ;;
-        -O) level=$2
+        -O ) level=$2
 	    shift
             ;;
-	-O0) level=0
+	-O0 ) level=0
 	    ;;
-	-O1) level=1
+	-O1 ) level=1
 	    ;;
-	-O2) level=2
+	-O2 ) level=2
 	    ;;
-	-O3) level=3
+	-O3 ) level=3
+	    ;;
+	-Os ) level=s
 	    ;;
 	-W | -Wall) warn=-Wall
 	    ;;
@@ -148,16 +150,16 @@ dat=data.bin
 
 if [ $verbose = true ]; then  memory_map="-Map ${inp}.map" ; fi
 
-cflags="-mcode-readable=no -mno-gpopt"
+cflags="-DcMIPS -mcode-readable=no -mno-gpopt -fno-builtin"
 
-(mips-gcc -O${level} $warn -DcMIPS $cflags -I"${include}" \
+(mips-gcc -O${level} $warn $cflags -I"${include}" \
           -S ${src} $S -o ${asm}  ||  exit 1) && \
-mips-gcc -O1 -DcMIPS $cflags -I"${include}" -S ${c_io}.c -o ${c_io}.s $S &&\
-mips-as -O1 -EL -mips32 -I "${include}" -o ${obj} ${asm} && \
-mips-as -O1 -EL -mips32 -I "${include}" -o ${c_start}.o ${c_start}.s && \
-mips-as -O1 -EL -mips32 -I "${include}" -o ${c_hndlrs}.o ${c_hndlrs}.s && \
-mips-as -O1 -EL -mips32 -I "${include}" -o ${c_io}.o ${c_io}.s && \
-mips-ld -EL -e _start ${memory_map} -I "${include}" --script $c_ld \
+mips-gcc -O1 $cflags -I"${include}" -S ${c_io}.c -o ${c_io}.s $S &&\
+mips-as  -O1 -EL -mips32 -I "${include}" -o ${obj} ${asm} && \
+mips-as  -O1 -EL -mips32 -I "${include}" -o ${c_start}.o ${c_start}.s && \
+mips-as  -O1 -EL -mips32 -I "${include}" -o ${c_hndlrs}.o ${c_hndlrs}.s && \
+mips-as  -O1 -EL -mips32 -I "${include}" -o ${c_io}.o ${c_io}.s && \
+mips-ld  -EL -e _start ${memory_map} -I "${include}" --script $c_ld \
     -o $elf ${c_start}.o ${c_hndlrs}.o ${c_io}.o $obj || exit 1
 
 mips-objcopy -S -j .text -O binary $elf $bin && \

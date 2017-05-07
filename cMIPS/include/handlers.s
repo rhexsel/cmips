@@ -75,7 +75,7 @@ extCounter:
 	.equ RX_Q,8
 	.equ TXHD,24
 	.equ TXTL,28
-	.equ TXQ,32
+	.equ TX_Q,32
 	.equ NRX,48
 	.equ NTX,52
 Ud:
@@ -88,12 +88,12 @@ tx_q:	.space 16	# transmission queue
 nrx:	.space 4	# characters in RX_queue
 ntx:	.space 4	# spaces left in TX_queue
 
-tx_has_started: .space 4
-
+tx_has_started:	.space 4 # synchronizes transmission with Putc()	
+	
 _uart_buff: .space 16*4 # up to 16 registers to be saved here
 	# _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=$v0, [3]=$v1,
 	#           [4]=$ra, [5]=$a0, [6]=$a1, [7]=$a2, [8]=$a3
-
+	
 	.set U_rx_irq,0x08
 	.set U_tx_irq,0x10
 
@@ -113,14 +113,14 @@ UARTinterr:
 	# While you are developing the complete handler, uncomment the
 	#   line below
 	#
-	#  .include "../tests/handlerUART.s"
+	# .include "../tests/handlerUART.s"
 	#
 	# Your new handler should be self-contained and do the
 	#   return-from-exception.  To do that, copy the lines below up
 	#   to, but excluding, ".end UARTinterr", to yours handlerUART.s.
 	#----------------------------------------------------------------
 
-	lui   $k0, %hi(_uart_buff)  # get buffer's address
+_u_rx:	lui   $k0, %hi(_uart_buff)  # get buffer's address
 	ori   $k0, $k0, %lo(_uart_buff)
 	
 	sw    $a0, 5*4($k0)	    # save registers $a0,$a1, others?

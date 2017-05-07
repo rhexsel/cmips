@@ -386,7 +386,8 @@ architecture behavioral of simple_uart is
 
   component uart_int is
     port(clk, rst: in std_logic;
-         s_ctrl, s_stat, s_tx, s_rx, s_int: in std_logic; -- select registers
+         s_ctrl, s_stat, s_tx, s_rx : in std_logic; -- select registers
+         s_intwr, s_intrd : in std_logic; -- select interrupt register
          d_inp:  in  std_logic_vector;  -- 32 bit input
          d_out:  out std_logic_vector;  -- 32 bit output
          txdat:  out std_logic;         -- serial transmission (output)
@@ -397,12 +398,13 @@ architecture behavioral of simple_uart is
          bit_rt: out std_logic_vector); -- communication speed - for TB only
   end component uart_int;
   
-  signal s_ctrl, s_stat, s_tx, s_rx, s_int: std_logic;
+  signal s_ctrl, s_stat, s_tx, s_rx, s_intwr, s_intrd : std_logic;
   signal d_inp, d_out : reg32;
 
 begin
 
-  U_UART: uart_int port map (clk, rst, s_ctrl,s_stat, s_tx,s_rx, s_int,
+  U_UART: uart_int port map (clk, rst, s_ctrl,s_stat, s_tx,s_rx,
+                             s_intwr, s_intrd,
                              d_inp,d_out, txdat,rxdat, rts,cts, irq, bit_rt);
   
   -- a3a2 wr  register (aligned to word addresses)
@@ -412,11 +414,12 @@ begin
   --  11  0  transmission W           IO_UART_ADDR +12
   --  11  1  reception    R           IO_UART_ADDR +12
   
-  s_ctrl <= '1' when sel = '0' and addr = b"00" and wr = '0' else '0'; -- R+W
-  s_stat <= '1' when sel = '0' and addr = b"01" and wr = '1' else '0'; -- R-O
-  s_int  <= '1' when sel = '0' and addr = b"10" and wr = '0' else '0'; -- W-O
-  s_tx   <= '1' when sel = '0' and addr = b"11" and wr = '0' else '0'; -- W+R
-  s_rx   <= '1' when sel = '0' and addr = b"11" and wr = '1' else '0';
+  s_ctrl  <= '1' when sel = '0' and addr = b"00" else '0'; -- R+W
+  s_stat  <= '1' when sel = '0' and addr = b"01" else '0'; -- R+W
+  s_intwr <= '1' when sel = '0' and addr = b"10" and wr = '0' else '0'; -- W
+  s_intrd <= '1' when sel = '0' and addr = b"10" and wr = '1' else '0'; -- R
+  s_tx    <= '1' when sel = '0' and addr = b"11" and wr = '0' else '0'; -- W-O
+  s_rx    <= '1' when sel = '0' and addr = b"11" and wr = '1' else '0'; -- R-O
   
   data_out <= d_out;
   

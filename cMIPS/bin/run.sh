@@ -93,7 +93,7 @@ if [ -v $WAVE ] ; then
 
 else 
 
-  "${simulator}" $options ; gtkwave -O /dev/null ${visual} ${sav} &
+  "${simulator}" $options ; gtkwave -O /dev/null -f ${visual} -a ${sav} &
 
 fi
 

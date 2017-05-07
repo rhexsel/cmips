@@ -43,15 +43,17 @@
 -- b4: interrupt pending on TX buffer empty
 -- b5: receive buffer is full
 -- b6: transmit buffer is empty
--- b7: Clear to Send (CTS) is active
+-- b7: Clear to Send (CTS) is active (=1)
 --
--- when CPU reads from RXdat register, bits 0 and 1 cleared
+-- when CPU reads from RXdat register, bits 0 and 1 of status are cleared
 -- 
 -- interrupt clear register, least significant byte only
 -- b2..b0: ignored, not used
--- b3=1:   clear interrupt bit on RX buffer full
--- b4=1:   clear interrupt bit on TX buffer empty
--- b5,,b7: ignored, not used
+-- b3=1:   clear interrupt bit on RX buffer full (IRQ -> 0)
+-- b4=1:   clear interrupt bit on TX buffer empty (IRQ -> 0)
+-- b5=1:   set interrupt bit on RX buffer full (IRQ -> 1)
+-- b6=1:   set interrupt bit on TX buffer empty (IRQ -> 1)
+-- b7:     ignored, not used
 --
 -- RX and TX circuits are dobule-buffered
 --
@@ -61,7 +63,8 @@ use work.p_WIRES.all;
 
 entity uart_int is
   port(clk, rst: in std_logic;
-       s_ctrl, s_stat, s_tx, s_rx, s_int : in std_logic; -- select registers
+       s_ctrl, s_stat, s_tx, s_rx : in std_logic; -- select registers
+       s_intwr, s_intrd : in std_logic; -- select interrupt register
        d_inp:  in  reg32;               -- input
        d_out:  out reg32;               -- output
        txdat:  out std_logic;           -- interface: serial transmission
@@ -76,12 +79,23 @@ architecture estrutural of uart_int is
 
   constant CLOCK_DIVIDER : integer := 50;
 
-  -- bit in ctrl registers to set/clear the RTS serial interface signal
+  -- bit in ctrl register to set/clear the RTS serial interface signal
   constant RTS_B : integer := 7;
-  -- bit in ctrl/interrupt registers to set/clear TX interrupt request
+
+  -- bit in interrupt register to set/clear RX interrupt request
+  constant SET_IRQ_TX : integer := 6;
+  -- bit in interrupt register to set/clear RX interrupt request
+  constant SET_IRQ_RX : integer := 5;
+  -- bit in interrupt register to set/clear TX interrupt request
+  constant CLR_IRQ_TX : integer := 4;
+  -- bit in interrupt register to set/clear RX interrupt request
+  constant CLR_IRQ_RX : integer := 3;
+
+  -- bit in ctrl register to set/clear TX interrupt request
   constant IRQ_TX_B : integer := 4;
-  -- bit in ctrl/interrupt registers to set/clear RX interrupt request
+  -- bit in ctrl register to set/clear RX interrupt request
   constant IRQ_RX_B : integer := 3;
+
   
   component register8 is
     port(clk, rst, ld: in  std_logic;
@@ -149,10 +163,13 @@ architecture estrutural of uart_int is
   signal tx_baud_div, rx_baud_div : integer := 0;
 
 begin
-
-    d_out <= x"000000" & received when s_rx = '1' else
-             x"000000" & status   when s_stat = '1' else
-             x"000000" & ctrl;
+  
+  -- interrupt register must read 0's as compiler generates RD-mod-WR
+  --   sequences to set or clear individual bits
+  d_out <= x"000000" & received when s_rx    = '1' else
+           x"000000" & status   when s_stat  = '1' else
+           x"00000000"          when s_intrd = '1' else  -- RD-mod-WR
+           x"000000" & ctrl;
 
   rts <= ctrl(RTS_B);
   
@@ -179,9 +196,10 @@ begin
 
   -- U_STAT_DELAY: FFDsimple port map (clk, rst, s_tx, s_stat_dly);
 
-  clear_tx_irq <= '0' when s_int = '1' and d_inp(IRQ_TX_B) = '1' else '1';
+  clear_tx_irq <= '0' when s_intwr = '1' and d_inp(CLR_IRQ_TX) = '1' else '1';
   
-  tx_int_set <= ctrl(IRQ_TX_B) and tx_ld;
+  tx_int_set <= ( (ctrl(IRQ_TX_B) and tx_ld) or
+                  (s_intwr and d_inp(SET_IRQ_TX)) );
   d_int_tx_empty <= (interr_TX_empty or tx_int_set) and clear_tx_irq;
   U_tx_int: FFDsimple port map (clk, rst, d_int_tx_empty, interr_TX_empty);
 
@@ -385,9 +403,11 @@ begin
   d_err_overrun <= (a_overrun or err_overrun) and not(s_rx);
   U_overrun: FFDsimple port map (clk, rst, d_err_overrun, err_overrun);
 
-  clear_rx_irq <= '0' when s_int = '1' and d_inp(IRQ_RX_B) = '1' else '1';
+  clear_rx_irq <= '0' when s_intwr = '1' and d_inp(CLR_IRQ_RX) = '1' else '1';
   
-  rx_int_set   <= ctrl(IRQ_RX_B) and rx_done;
+  rx_int_set   <= ( (ctrl(IRQ_RX_B) and rx_done) or
+                    (s_intwr and d_inp(SET_IRQ_RX)) );
+    
   d_rx_int_set <= (rx_int_set or interr_RX_full) and clear_rx_irq;
   U_rx_int: FFDsimple port map (clk, rst, d_rx_int_set, interr_RX_full);
 

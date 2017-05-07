@@ -246,9 +246,9 @@ dismiss: # No pending request, must have been noise
          #  do nothing and return
 
 _excp_0200ret:
-        mfc0 $k0, c0_status        # Read STATUS register
-        ori  $k0, $k0, M_StatusIEn #  and re-enable interrupts
-        mtc0 $k0, c0_status        #  else keep as it was on int entry 
+        #mfc0 $k0, c0_status        # Read STATUS register
+        #ori  $k0, $k0, M_StatusIEn #  and re-enable interrupts
+        #mtc0 $k0, c0_status        #  else keep as it was on int entry 
         eret                       # Return from interrupt
         nop
 
