@@ -17,10 +17,10 @@
 	.global _exit
 
 _start: nop
-        li   $k0, c0_status_reset # RESET, kernel mode, all else disabled
+        li   $k0, c0_status_reset # RESET, user mode, all else disabled
         mtc0 $k0, c0_status
 	li   $sp,(x_DATA_BASE_ADDR+x_DATA_MEM_SZ-8) # initialize SP: ramTop-8
-        li   $k0, 0x1800ff01  # RESET_STATUS, kernel mode, interr enabled
+        li   $k0, 0x1000ff01  # RESET_STATUS, kernel mode, interr enabled
         mtc0 $k0, c0_status
         li   $k0, c0_cause_reset  # RESET, disable counter
         mtc0 $k0, c0_cause
@@ -103,7 +103,8 @@ _excp_200:
 	sw    $k0, 0($15)      	# print CAUSE
 	
 	eret
-
+	nop
+	nop
 err3:	
 	li    $30, 'i'
         sw    $30, x_IO_ADDR_RANGE($15)
@@ -121,12 +122,13 @@ err3:
 	sw    $22, 0($15)
 
 	mfc0  $k0, c0_status
-	li    $k1, 0xffff00fe   	# disable interrupts
+	li    $k1, 0xfffffffe   	# disable interrupts
 	and   $k0, $k0, $k1
         mtc0  $k0, c0_status
 	ehb
 	eret
-
+	nop
+	nop
 	
 
         .org x_EXCEPTION_BFC0,0

@@ -96,6 +96,7 @@ package p_EXCEPTION is
   constant STATUS_CU2:  integer := 30;	-- COP-1 absent=0 (always)
   constant STATUS_CU1:  integer := 29;	-- COP-1 absent=0 (always)
   constant STATUS_CU0:  integer := 28;	-- COP-0 present=1 (always)
+  constant STATUS_RP:   integer := 27;	-- reduced power=0 (always)  
   constant STATUS_BEV:  integer := 22;	-- locationVect at bootstrap=1
   constant STATUS_TS:   integer := 21;	-- TLBmatchesSeveral=1
   constant STATUS_SR:   integer := 20;	-- softReset=1

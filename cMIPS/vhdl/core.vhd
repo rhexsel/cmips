@@ -158,7 +158,7 @@ architecture rtl of core is
   signal update_reg : reg5;
   signal status_update,epc_update,compare_update: std_logic;
   signal disable_count, compare_set, compare_clr: std_logic;
-  signal STATUSinp,STATUS, CAUSEinp,CAUSE, EPCinp,EPC : reg32;
+  signal STATUSinp, STATUS, CAUSE, EPCinp,EPC : reg32;
   signal COUNT, COMPARE : reg32;
   signal count_eq_compare,count_update,count_enable : std_logic;
   signal exception,EX_exception, MM_exception : exception_type;
@@ -1906,7 +1906,7 @@ begin
     i_stall      := '0';
     i_nullify    := FALSE;
 
-    exception_taken <= '0';             -- for debugging only
+    exception_taken <= '0';
     interrupt_taken <= '0';
     ExcCode         <= cop0code_NULL;
     is_delayslot    <= '0';
@@ -1918,6 +1918,7 @@ begin
     newSTATUS(STATUS_CU2) := '0';  -- COP-2 absent (always)
     newSTATUS(STATUS_CU1) := '0';  -- COP-1 absent (always)
     newSTATUS(STATUS_CU0) := '1';  -- COP-0 present=1 (always)
+    newSTATUS(STATUS_RP)  := '0';  -- reduced power (always)
     
     case is_exception is
 
@@ -1980,8 +1981,9 @@ begin
         i_update   := '1';
         i_update_r := cop0reg_STATUS;
         i_stall    := '0';              -- do not stall
-        i_epc_update   := '0';
+        i_epc_update := '0';
         i_nullify    := TRUE;           -- nullify instructions in IF,RF
+        exception_taken <= '1';
         if MM_is_delayslot = '1' then   -- instr is in delay slot
           i_epc_source  := EPC_src_WB;  -- re-execute branch/jump
           is_delayslot  <= WB_is_delayslot;
@@ -2174,6 +2176,7 @@ begin
         i_update   := '1';
         i_update_r := cop0reg_STATUS;
         i_nullify  := TRUE;             -- nullify instructions in IF,RF,EX
+        exception_taken <= '1';
         
         
       when exInterr =>                  -- normal interrupt
@@ -2367,53 +2370,65 @@ begin
    
 
   -- CAUSE -- pg 92-- cop0_13 --------------------------
-  COP0_COMPUTE_CAUSE: process(rst,clk, update,update_reg,
-                              MM_int_req, ExcCode, cop0_inp, is_delayslot,
-                              count_eq_compare,count_enable, STATUS, CAUSE)
-    variable newCAUSE : reg32;
+  COP0_COMPUTE_CAUSE: process(rst, clk)
+                              -- update, update_reg,
+                              -- MM_int_req, ExcCode, cop0_inp, is_delayslot,
+                              -- count_eq_compare,
+                              -- interrupt_taken, exception_taken,
+                              -- STATUS)
+    variable branch_delay : std_logic;
+    variable excp_code : reg5;
   begin
 
-    if STATUS(STATUS_EXL) = '0' then            -- no exception, update CAUSE 
-      newCAUSE(CAUSE_BD)   := is_delayslot;
-      newCAUSE(CAUSE_TI)     := count_eq_compare;
-      newCAUSE(CAUSE_CE1)    := '0';
-      newCAUSE(CAUSE_CE0)    := '0';
-      newCAUSE(CAUSE_DC)     := CAUSE(CAUSE_DC);
-      newCAUSE(CAUSE_PCI)    := '0';
-      newCAUSE(25 downto 24) := b"00";
-      newCAUSE(CAUSE_IV)     := CAUSE(CAUSE_IV);
-      newCAUSE(CAUSE_WP)     := '0';
-      newCAUSE(21 downto 16) := b"000000";      
-      newCAUSE(CAUSE_IP7)    := MM_int_req(5);
-      newCAUSE(CAUSE_IP6)    := MM_int_req(4);
-      newCAUSE(CAUSE_IP5)    := MM_int_req(3);
-      newCAUSE(CAUSE_IP4)    := MM_int_req(2);
-      newCAUSE(CAUSE_IP3)    := MM_int_req(1);
-      newCAUSE(CAUSE_IP2)    := MM_int_req(0);
-      newCAUSE(CAUSE_IP1)    := CAUSE(CAUSE_IP1);
-      newCAUSE(CAUSE_IP0)    := CAUSE(CAUSE_IP0);
-      newCAUSE(7)            := '0';
-      newCAUSE(6 downto 2)   := ExcCode;
-      newCAUSE(1 downto 0)   := b"00";
+    if (STATUS(STATUS_EXL) = '1') then
+      branch_delay := CAUSE(CAUSE_BD);  -- do NOT update
     else
-      newCAUSE               := CAUSE;  -- hold it on an exception
+      branch_delay := is_delayslot;     -- may update
     end if;
 
-    if (update = '1' and update_reg = cop0reg_CAUSE) then
-      CAUSEinp <= newCAUSE(CAUSE_BD downto CAUSE_CE0) &
-                  cop0_inp(CAUSE_DC) & cop0_inp(CAUSE_PCI) & b"00" &
-                  cop0_inp(CAUSE_IV) & 
-                  newCAUSE(CAUSE_WP  downto CAUSE_IP2) &
-                  cop0_inp(CAUSE_IP1 downto CAUSE_IP0) & '0' &
-                  newCAUSE(6 downto 2) & b"00";
+    if (interrupt_taken = '1') or (exception_taken = '1') then
+      excp_code := ExcCode;             -- record new exception      
     else
-      CAUSEinp <= newCAUSE;
+      excp_code := CAUSE(CAUSE_ExcCodehi downto CAUSE_ExcCodelo);  -- hold
     end if;
+    
+    if rst = '0' then
+      CAUSE <= RESET_CAUSE;
+    elsif rising_edge(clk) then
+      if (update = '1' and update_reg = cop0reg_CAUSE) then
+        CAUSE <= branch_delay &         -- b31, CAUSE_BD
+                 count_eq_compare &     -- b30, CAUSE_TI timer interrupt
+                 b"00" &                -- b29,28, CAUSE_CE1,CAUSE_CE0
+                 cop0_inp(CAUSE_DC) &   -- b27, disable COUNT register
+                 '0' &                  -- b26, CAUSE_PCI
+                 b"00" &                -- b25,b24, nil
+                 cop0_inp(CAUSE_IV) &   -- b23, separate interrupr vector
+                 cop0_inp(CAUSE_WP) &   -- b22, watch exception
+                 b"000000" &            -- b21..b16, nil
+                 MM_int_req(5 downto 0) &   -- b15..b10, update HW IRQs
+                 cop0_inp(CAUSE_IP1 downto CAUSE_IP0) &  -- b10,b9, SW IRQs
+                 '0' &                  -- b7, nil
+                 excp_code &            -- b6..b2, ExcCode
+                 b"00";                 -- b1,b0, nil
+      else
+        CAUSE <= branch_delay &         -- b31, CAUSE_BD
+                 count_eq_compare &     -- b30, CAUSE_TI timer interrupt
+                 b"00" &                -- b29,b28, CAUSE_CE1,CAUSE_CE0
+                 CAUSE(CAUSE_DC) &      -- b27, disable COUNT register
+                 '0' &                  -- b26, CAUSE(CAUSE_PCI)
+                 b"00" &                -- b25,b24, nil
+                 CAUSE(CAUSE_IV) &      -- b23, separate interrupr vector
+                 CAUSE(CAUSE_WP) &      -- b22, watch exception
+                 b"000000" &            -- b21..b16, nil
+                 MM_int_req(5 downto 0) &   -- b15..b10, update HW IRQs
+                 CAUSE(CAUSE_IP1 downto CAUSE_IP0) &  -- b10,b9, SW IRQs
+                 '0' &                  -- b7, nil
+                 excp_code &            -- b6..b2, ExcCode
+                 b"00";                 -- b1,b0, nil
+      end if;
+    end if;
+
   end process COP0_COMPUTE_CAUSE;
-
- 
-  COP0_CAUSE: register32 generic map (RESET_CAUSE)
-    port map (clk, rst, '0', CAUSEinp, CAUSE);
 
 
   -- EPC -- pg 97 -- cop0_14 -------------------

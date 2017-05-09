@@ -228,8 +228,8 @@ begin  -- behavioral
         if not endfile(load_file) then
           read(load_file, instr);
           s_instr := to_signed(instr, 32);
-          -- assert false report "romINIT["& natural'image(index*4) &"]= " &
-          --  SLV32HEX(std_logic_vector(s_instr)); -- DEBUG
+          assert TRUE report "romINIT["& natural'image(index*4) &"]= " &
+            SLV32HEX(std_logic_vector(s_instr)); -- DEBUG
           storage(index) := std_logic_vector(s_instr);
           index := index + 1;
         end if;
@@ -251,8 +251,8 @@ begin  -- behavioral
       
       if sel = '0' then
         data <= storage(latched);
-        -- assert false -- DEBUG
-        --  report "romRD["& natural'image(index) &"]="& SLV32HEX(storage(index)); 
+        assert TRUE -- DEBUG
+          report "romRD["& natural'image(index) &"]="& SLV32HEX(storage(index)); 
       else
         data <= (others => 'X');
       end if;

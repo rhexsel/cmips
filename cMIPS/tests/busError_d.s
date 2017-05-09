@@ -65,7 +65,7 @@ excp_180:
         li   $k0, '\n'
         sw   $k0, x_IO_ADDR_RANGE($14)
         mfc0 $k0, c0_cause
-	# andi $k0, $k0, 0x003f	# mask off cause of exception
+	# andi $k0, $k0, 0x007f	# mask off cause of exception
 	sw   $k0, 0($14)        # print CAUSE
         li   $k0, '\n'
         sw   $k0, x_IO_ADDR_RANGE($14)

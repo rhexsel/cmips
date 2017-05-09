@@ -1,9 +1,12 @@
 	##
-	## generate and handle (??) a instruction fetch bus error
+	## generate and handle (??) an instruction fetch bus error
 	## the error occurs on an attempt to fetch from non-exixting ROM
 	##
 	## one TLB entry must point into the non-existing ROM address to
 	##   avoid a TLBmiss exception.
+	##
+	## ignore VHDL complaints about "romRDindex out of bounds"
+	##   ROM _must_ be indexed out of bounds for this test
 	##
 	
 	.include "cMIPS.s"
