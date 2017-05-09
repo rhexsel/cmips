@@ -17,6 +17,26 @@
 
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+library IEEE;
+use IEEE.std_logic_1164.all;
+package p_UART is
+  constant BAUD_RT_0 : integer :=    4/2;
+  constant BAUD_RT_1 : integer :=    8/2;
+  constant BAUD_RT_2 : integer :=   16/2;
+  constant BAUD_RT_3 : integer :=   32/2;
+  constant BAUD_RT_4 : integer :=   64/2;
+  constant BAUD_RT_5 : integer :=  128/2;
+  constant BAUD_RT_6 : integer := 2604/2;  -- 19.200,  434/2 = 115.200
+  constant BAUD_RT_7 : integer := 5208/2;  --  9.600
+end p_UART;
+
+-- package body p_UART is
+-- end p_UART;
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+  
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- UART internals; the external/processor interface is defined in io.vhdl
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -27,13 +47,15 @@
 --         010: 1/16 CPU clock rate -- for VHDL/C debugging only
 --         011: 1/32 CPU clock rate -- for VHDL/C debugging only
 --         100: 1/64 CPU clock rate -- for VHDL/C debugging only
---         101: 115.200 bits per second
+--         101: 1/128 CPU clock rate -- for VHDL/C debugging only
 --         110:  19.200 bits per second
 --         111:   9.600 bits per second
 -- b3=1:   signal interrupt on RX buffer full, when a new octet is available
 -- b4=1:   signal interrupt on TX buffer empty, when TX space is available
 -- b5,b6:  ignored, not used
 -- b7=1:   turn on Request to Send (RTS)
+--
+-- Baud rates dividers (BAUD_RT_n) are defined in packageWires.vhd
 -- 
 -- status register, least significant byte only
 -- b0: overurn error, last octet received overwrote previous in buffer
@@ -60,6 +82,7 @@
 
 library ieee; use ieee.std_logic_1164.all;
 use work.p_WIRES.all;
+use work.p_UART.all;
 
 entity uart_int is
   port(clk, rst: in std_logic;
@@ -193,8 +216,6 @@ begin
   tx_next <= txclk_rise and tx_shift;
   U_transmit: par_ser10 port map (clk, rst, tx_ld, tx_next,
                                    sta_xmit_sto, txdat);
-
-  -- U_STAT_DELAY: FFDsimple port map (clk, rst, s_tx, s_stat_dly);
 
   clear_tx_irq <= '0' when s_intwr = '1' and d_inp(CLR_IRQ_TX) = '1' else '1';
   
@@ -604,23 +625,14 @@ begin
 
   -- U_bit_rt_tx: counter8 port map (clk,rst,tx_ld,en_tx_clk,x"00",tx_bit_rt);
   with ctrl(2 downto 0) select
-    tx_baud_div <=      4/2 when b"000",
-                        8/2 when b"001",
-                       16/2 when b"010",
-                       32/2 when b"011",
-                       64/2 when b"100",
-                      434/2 when b"101",  -- 115.200
-                     2604/2 when b"110",  --  19.200
-                     5208/2 when others;  --   9.600
-
---         000: 1/4  CPU clock rate -- for VHDL/C debugging only
---         001: 1/8  CPU clock rate -- for VHDL/C debugging only
---         010: 1/16 CPU clock rate -- for VHDL/C debugging only
---         011: 1/32 CPU clock rate -- for VHDL/C debugging only
---         100: 230.400 baud
---         101: 115.200 baud 
---         110:  19.200 baud
---         111:   9.600 baus
+    tx_baud_div <= BAUD_RT_0 when b"000",
+                   BAUD_RT_1 when b"001",
+                   BAUD_RT_2 when b"010",
+                   BAUD_RT_3 when b"011",
+                   BAUD_RT_4 when b"100",
+                   BAUD_RT_5 when b"101",
+                   BAUD_RT_6 when b"110",
+                   BAUD_RT_7 when others;
 
   -- max divisor would be 50,000,000 / 1,200 bps = 46.667 < 64k-1
   U_bit_rt_tx: process(clk, rst, tx_ld, en_tx_clk)
@@ -653,14 +665,14 @@ begin
 
   -- U_bit_rt_rx:counter8 port map(clk,rst,reset_rxck,en_rx_clk,00,rx_bit_rt);
   with ctrl(2 downto 0) select
-    rx_baud_div <=      4/2 when b"000",
-                        8/2 when b"001",
-                       16/2 when b"010",
-                       32/2 when b"011",
-                       64/2 when b"100",
-                      434/2 when b"101",  -- 115.200
-                     2604/2 when b"110",  --  19.200
-                     5208/2 when others;  --   9.600
+    rx_baud_div <= BAUD_RT_0 when b"000",
+                   BAUD_RT_1 when b"001",
+                   BAUD_RT_2 when b"010",
+                   BAUD_RT_3 when b"011",
+                   BAUD_RT_4 when b"100",
+                   BAUD_RT_5 when b"101",
+                   BAUD_RT_6 when b"110",
+                   BAUD_RT_7 when others;
 
   U_bit_rt_rx: process(clk, rst, reset_rxck, en_rx_clk)
     variable baud_cnt : integer range 0 to 65535;
@@ -809,7 +821,7 @@ use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 use std.textio.all;
 use work.p_WIRES.all;
-
+use work.p_UART.all;
         
 entity remota is
   generic(OUTPUT_FILE_NAME : string := "serial.out";
@@ -1095,14 +1107,14 @@ begin
   -- baud rate generators ---------------------------------------------
 
   with bit_rt select
-    tx_baud_div <=      4/2 when b"000",
-                        8/2 when b"001",
-                       16/2 when b"010",
-                       32/2 when b"011",
-                       64/2 when b"100",
-                      434/2 when b"101",  -- 115.200
-                     2604/2 when b"110",  --  19.200
-                     5208/2 when others;  --   9.600
+    tx_baud_div <= BAUD_RT_0 when b"000",
+                   BAUD_RT_1 when b"001",
+                   BAUD_RT_2 when b"010",
+                   BAUD_RT_3 when b"011",
+                   BAUD_RT_4 when b"100",
+                   BAUD_RT_5 when b"101",
+                   BAUD_RT_6 when b"110",
+                   BAUD_RT_7 when others;
 
   U_bit_rt_tx: process(clk, rst)
     variable baud_cnt : integer;
@@ -1123,14 +1135,14 @@ begin
 
   -- RX clock daud rate
   with bit_rt select
-    rx_baud_div <=      4/2 when b"000",
-                        8/2 when b"001",
-                       16/2 when b"010",
-                       32/2 when b"011",
-                       64/2 when b"100",
-                      434/2 when b"101",  -- 115.200
-                     2604/2 when b"110",  --  19.200
-                     5208/2 when others;  --   9.600
+    rx_baud_div <= BAUD_RT_0 when b"000",
+                   BAUD_RT_1 when b"001",
+                   BAUD_RT_2 when b"010",
+                   BAUD_RT_3 when b"011",
+                   BAUD_RT_4 when b"100",
+                   BAUD_RT_5 when b"101",
+                   BAUD_RT_6 when b"110",
+                   BAUD_RT_7 when others;
 
   U_bit_rt_rx: process(clk, rst, reset_rxck, rx_run)
     variable baud_cnt : integer;
