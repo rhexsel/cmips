@@ -70,26 +70,27 @@ extCounter:
         .align  2
 	.global Ud, tx_has_started
 
-	.equ RXHD,0
-	.equ RXTL,4
-	.equ RX_Q,8
-	.equ TXHD,24
-	.equ TXTL,28
-	.equ TX_Q,32
-	.equ NRX,48
-	.equ NTX,52
+	.equ Q_SZ, (1<<4) # 16, MUST be a power of two
+	.equ RXHD, 0
+	.equ RXTL, RXHD+4
+	.equ RX_Q, RXTL+4
+	.equ TXHD, RX_Q+Q_SZ
+	.equ TXTL, TXHD+4
+	.equ TX_Q, TXTL+4
+	.equ NRX,  TX_Q+Q_SZ
+	.equ NTX,  NRX+4
 Ud:
 rx_hd:	.space 4	# reception queue head index
 rx_tl:	.space 4	# tail index
-rx_q:   .space 16       # reception queue
+rx_q:	.space Q_SZ     # reception queue
 tx_hd:	.space 4	# transmission queue head index
 tx_tl:	.space 4	# tail index
-tx_q:	.space 16	# transmission queue
+tx_q:	.space Q_SZ	# transmission queue
 nrx:	.space 4	# characters in RX_queue
 ntx:	.space 4	# spaces left in TX_queue
 
 tx_has_started:	.space 4 # synchronizes transmission with Putc()	
-	
+
 _uart_buff: .space 16*4 # up to 16 registers to be saved here
 	# _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=$v0, [3]=$v1,
 	#           [4]=$ra, [5]=$a0, [6]=$a1, [7]=$a2, [8]=$a3
@@ -97,10 +98,10 @@ _uart_buff: .space 16*4 # up to 16 registers to be saved here
 	.set U_rx_irq,0x08
 	.set U_tx_irq,0x10
 
-	.equ UCTRL,0	# UART registers
-	.equ USTAT,4
-	.equ UINTER,8
-	.equ UDATA,12
+	.equ UCTRL,  0	# UART registers' displacement from base
+	.equ USTAT,  4
+	.equ UINTER, 8
+	.equ UDATA, 12
 
 	.text
 	.set    noreorder

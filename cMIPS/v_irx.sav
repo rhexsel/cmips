@@ -1,26 +1,25 @@
 [*]
 [*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
-[*] Sun Apr 30 21:04:00 2017
+[*] Thu May 11 15:01:24 2017
 [*]
 [dumpfile] "/home/roberto/cMIPS/cMIPS.vcd"
-[dumpfile_mtime] "Sun Apr 30 21:04:00 2017"
-[dumpfile_size] 8699904
+[dumpfile_mtime] "Thu May 11 14:57:43 2017"
+[dumpfile_size] 112346840
 [savefile] "/home/roberto/cMIPS/v_irx.sav"
-[timestart] 660909400000
-[size] 1509 1018
-[pos] -1 -1
-*-26.114582 661125900000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[timestart] 0
+[size] 1447 990
+[pos] -1 27
+*-35.114582 29130000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] u_simple_uart.
 [sst_width] 210
 [signals_width] 217
 [sst_expanded] 1
-[sst_vpaned_height] 313
+[sst_vpaned_height] 302
 @28
 clk
-@23
+@22
 u_core.pc[31:0]
 @28
-u_core.pcsel[1:0]
 u_core.annul_twice
 u_core.interrupt_taken
 u_simple_uart.irq
@@ -38,9 +37,9 @@ u_core.v_addr[31:0]
 @200
 -  COP0
 @22
-u_core.epc[31:0]
 u_core.cause[31:0]
 u_core.status[31:0]
+u_core.epc[31:0]
 @200
 -    memory
 @28
@@ -52,8 +51,6 @@ u_core.data_out[31:0]
 @28
 cpu_d_aval
 u_core.mm_wrmem
-@24
-u_core.mm_a_c[4:0]
 @200
 -    write-back
 @24
@@ -78,16 +75,17 @@ u_simple_uart.u_uart.ctrl[7:0]
 u_simple_uart.u_uart.s_rx
 @22
 u_simple_uart.u_uart.received[7:0]
+@23
+u_simple_uart.u_uart.rxreg[7:0]
 @28
 u_simple_uart.u_uart.s_tx
 @22
 u_simple_uart.u_uart.txreg[7:0]
 @28
-u_simple_uart.u_uart.s_int
 u_simple_uart.irq
+u_simple_uart.u_uart.s_intwr
 u_simple_uart.u_uart.rx_done
 u_simple_uart.u_uart.interr_rx_full
-u_simple_uart.u_uart.tx_int_set
 u_simple_uart.u_uart.interr_tx_empty
 @200
 -  reception
