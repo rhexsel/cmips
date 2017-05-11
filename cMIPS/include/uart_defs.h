@@ -40,15 +40,15 @@ typedef struct serial {
 
 
 
-#define MAXQ (1<<4)     //  16, MUST be a power of 2
+#define Q_SZ (1<<4)     //  16, MUST be a power of 2
 
 typedef struct UARTdriver {
    int      rx_hd;      // reception queue head index
    int      rx_tl;      // reception queue tail index
-   char     rx_q[MAXQ]; // reception queue
+   char     rx_q[Q_SZ]; // reception queue
    int      tx_hd;      // transmission queue head index
    int      tx_tl;      // transmission queue tail index
-   char     tx_q[MAXQ]; // transmission queue
+   char     tx_q[Q_SZ]; // transmission queue
    int      nrx;        // number of characters in rx_queue
    int      ntx;        // number of spaces in tx_queue
 } UARTdriver;
