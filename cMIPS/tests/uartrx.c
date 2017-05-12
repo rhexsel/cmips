@@ -20,10 +20,9 @@ char s[32]; // = "               ";
 #define SPEED 1
 
 int main(void) { // receive a string through the UART serial interface
-  int i;
-  volatile int state;
-  volatile Tserial *uart;  // tell GCC not to optimize away code
-  volatile Tstatus status;
+  int i, state;
+  Tserial volatile *uart;  // tell GCC not to optimize away code
+  Tstatus  status;
   Tcontrol ctrl;
 
   uart = (void *)IO_UART_ADDR; // bottom of UART address range

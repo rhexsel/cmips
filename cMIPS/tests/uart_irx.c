@@ -25,11 +25,11 @@
 
 
 int main(void) {  // receive a string through the UART serial interface
-  volatile Tserial *uart;  // tell GCC not to optimize away code
+  Tserial volatile *uart;  // tell GCC not to optimize away code
   Tcontrol ctrl;
-  extern int Ud[2];  // declared in include/handlers.s
+  extern   int Ud[2];  // declared in include/handlers.s
   volatile int *bfr;
-  volatile char c;
+  char c;
 
   bfr = (int *)Ud;
   uart = (void *)IO_UART_ADDR; // bottom of UART address range

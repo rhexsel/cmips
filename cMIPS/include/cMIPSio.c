@@ -18,7 +18,7 @@
 //=======================================================================
 // read a character from VHDL simulator's standard input
 int from_stdin(void) {
-  int *IO = (void *)IO_STDIN_ADDR;
+  int volatile *IO = (void *)IO_STDIN_ADDR;
   
   // gets line line only after receiving a '\n' (line-feed, 0x0a)
   return( *IO );
@@ -26,7 +26,7 @@ int from_stdin(void) {
 
 // write a character to VHDL simulator's standard output
 void to_stdout(char c) {
-  int *IO = (int *)IO_STDOUT_ADDR;
+  int volatile *IO = (int *)IO_STDOUT_ADDR;
   
   // prints line only after receiving a '\0' or a '\n' (line-feed, 0x0a)
   *IO = (unsigned char)c;
@@ -34,7 +34,7 @@ void to_stdout(char c) {
 
 // write an integer (hex) to VHDL simulator's standard output
 void print(int n) { 
-  int *IO = (int *)IO_PRINT_ADDR;
+  int volatile *IO = (int *)IO_PRINT_ADDR;
 
   *IO = n;
 }
@@ -46,7 +46,7 @@ void print(int n) {
 // read an integer from file input.data
 //  return value = 1 if EndOfFile, 0 otherwise
 int readInt(int *n) {
-  int *IO = (int *)IO_READ_ADDR;
+  int volatile *IO = (int *)IO_READ_ADDR;
   int status, value;
 
   value  = *IO;
@@ -60,21 +60,21 @@ int readInt(int *n) {
 
 // write an integer integer to file  output.data
 void writeInt(int n) {
-  int *IO = (int *)IO_WRITE_ADDR;
+  int volatile *IO = (int *)IO_WRITE_ADDR;
 
   *IO = n;
 }
 
 // close file output.data
 void writeClose(void) {
-  int *IO = (int *)IO_WRITE_ADDR;
+  int volatile *IO = (int *)IO_WRITE_ADDR;
 
   *(IO + 1) = 1;
 }
 
 // write a dump of the current state of the RAM to file dump.data
 void dumpRAM(void) {
-  char *IO = (char *)IO_WRITE_ADDR;
+  char volatile *IO = (char *)IO_WRITE_ADDR;
 
   *(IO + 7) = 1;
 }; //--------------------------------------------------------------------
@@ -85,7 +85,7 @@ void dumpRAM(void) {
 //=======================================================================
 void readStats(sStats *s) {
 #if 0
-  int *IO = (int *)IO_STATS_ADDR;
+  int volatile *IO = (int *)IO_STATS_ADDR;
 
   s->dc_ref    = *(IO+0);
   s->dc_rd_hit = *(IO+1);
@@ -175,7 +175,7 @@ char *memset(char *dst, const int val, int len) {
 //   debouncing done if d31 != 0
 //   switches are presented in d4-d7
 int  KBDget(void) {
-  int *IO = (int *)IO_KEYBD_ADDR;
+  int volatile *IO = (int *)IO_KEYBD_ADDR;
   int k;
   
   k = *IO;
@@ -196,7 +196,7 @@ int  KBDget(void) {
 //  data(1) <= sw(1);
 //  data(0) <= sw(0);
 int  SWget(void) {
-  int *IO = (int *)IO_KEYBD_ADDR;
+  int volatile *IO = (int *)IO_KEYBD_ADDR;
   int k;
   
   return ( (*IO & 0xf0) >>4 ); 
@@ -236,7 +236,7 @@ int  SWget(void) {
 
 
 void LCDinit(void) {
-  int *IO = (int *)IO_LCD_ADDR;
+  int volatile *IO = (int *)IO_LCD_ADDR;
 
   cmips_delay(LCD_reset_cycles); // wait 50ms for LCD controller to reset
 
@@ -277,14 +277,14 @@ void LCDinit(void) {
 
 // check LCD's status register
 int LCDprobe(void) {
-  int *IO = (int *)IO_LCD_ADDR;
+  int volatile *IO = (int *)IO_LCD_ADDR;
   return ( (*IO & LCD_busy)>>7 );
 }
 
 // write a new command to the LCD's control register
 int LCDset(int cmd) {
-  int *IO = (int *)IO_LCD_ADDR;
-  volatile int s;
+  int volatile *IO = (int *)IO_LCD_ADDR;
+  int s;
 
   *IO = cmd;
   cmips_delay(LCD_oper_delay);
@@ -296,8 +296,8 @@ int LCDset(int cmd) {
 
 // write a "raw" character on the current position
 int LCDput(int c) {
-  int *IO = (int *)IO_LCD_ADDR;
-  volatile int s;
+  int volatile *IO = (int *)IO_LCD_ADDR;
+  int s;
   
   *(IO+1) = c;
   s = *IO;
@@ -307,21 +307,21 @@ int LCDput(int c) {
 
 // clear screen
 void LCDclr(void) {
-  int *IO = (int *)IO_LCD_ADDR;
+  int volatile *IO = (int *)IO_LCD_ADDR;
   *IO = 0b00000001; // x01 clear display -- DELAY=0.6ms
   cmips_delay(LCD_clear_delay);
 }
 
 // set home to the left of the TOP line
 void LCDtopLine(void) {
-  int *IO = (int *)IO_LCD_ADDR;
+  int volatile *IO = (int *)IO_LCD_ADDR;
   *IO = 0b10000000; // x80 RAMaddrs=00, cursor at home on TOP LINE
   cmips_delay(LCD_clear_delay);
 }
 
 // set home to the left of the BOTTOM line
 void LCDbotLine(void) {
-  int *IO = (int *)IO_LCD_ADDR;
+  int volatile *IO = (int *)IO_LCD_ADDR;
   *IO = 0b11000000; // xc0 RAMaddrs=40, cursor at home on BOTTOM LINE
   cmips_delay(LCD_clear_delay);
 }
@@ -411,7 +411,7 @@ void LCDbyte(unsigned char n) {
 // MSdigit bits bit7..4, lsDigit bit3..0, MSD dot bit9, lsD dot bit8
 //=======================================================================
 void DSP7SEGput(int MSD, int MSdot, int lsd, int lsdot, int rgb) {
-  int *IO = (int *)IO_DSP7SEG_ADDR;
+  int volatile *IO = (int *)IO_DSP7SEG_ADDR;
   int leds, dot1, dot0, dig1, dig0;
 
   dot1 = (MSdot != 0 ? 1 << 9 : 0);
@@ -437,7 +437,7 @@ void DSP7SEGput(int MSD, int MSdot, int lsd, int lsdot, int rgb) {
 // write an integer with number of pulses to count and start counter
 //  if interr is not 0, then raise an interrupt when count reaches 'n'
 void startCounter(int n, int interr) {
-  int *IO = (int *)IO_COUNT_ADDR;
+  int volatile *IO = (int *)IO_COUNT_ADDR;
   int interrupt;
   // set bit 31 to cause an interrupt on count==n, reset for no interrupt
   interrupt = (interr == 0 ? 0x00000000 : 0x80000000);
@@ -448,7 +448,7 @@ void startCounter(int n, int interr) {
 
 // stop the counter, keep current count & interrupt status
 void stopCounter(void) {
-  int *IO = (int *)IO_COUNT_ADDR;
+  int volatile *IO = (int *)IO_COUNT_ADDR;
   int value;
   
   value = *IO;
@@ -457,7 +457,7 @@ void stopCounter(void) {
 
 // read counter value and interrupt status
 int readCounter(void) {
-  int *IO = (int *)IO_COUNT_ADDR;
+  int volatile *IO = (int *)IO_COUNT_ADDR;
 
   return *IO;
 }; //--------------------------------------------------------------------

@@ -32,33 +32,42 @@ typedef struct interr  { // interrupt clear bits (uses only ls byte)
 
 
 typedef struct serial {
-  Tcontrol  ctl;        // read-write,  address is (int *)IO_UART_ADDR
-  Tstatus   stat;       // read-only,   address is (int *)(IO_UART_ADDR+1)
-  Tinterr   interr;     // write-only,  address is (int *)(IO_UART_ADDR+2)
-  int       data;       // read-write,  address is (int *)(IO_UART_ADDR+3)
+  volatile       Tcontrol ctl;  // RD+WR, addr (int *)IO_UART_ADDR
+  const volatile Tstatus  stat; // RD,    addr (int *)(IO_UART_ADDR+1)
+  Tinterr               interr; // WR,    addr (int *)(IO_UART_ADDR+2)
+  volatile int            data; // RD+WR, addr (int *)(IO_UART_ADDR+3)
 } Tserial;
 
 
 
-#define Q_SZ (1<<4)     //  16, MUST be a power of 2
+#define Q_SZ (1<<4)          //  16, MUST be a power of 2
+
+// rx_tl and tx_hd are updated by the interrupt handler, hence volatile
+// rx_q  is updated only by the handler, hence constant (RO) and volatile
 
 typedef struct UARTdriver {
-   int      rx_hd;      // reception queue head index
-   int      rx_tl;      // reception queue tail index
-   char     rx_q[Q_SZ]; // reception queue
-   int      tx_hd;      // transmission queue head index
-   int      tx_tl;      // transmission queue tail index
-   char     tx_q[Q_SZ]; // transmission queue
-   int      nrx;        // number of characters in rx_queue
-   int      ntx;        // number of spaces in tx_queue
+   int           rx_hd;      // reception queue head index
+   int  volatile rx_tl;      // reception queue tail index
+   char const volatile rx_q[Q_SZ]; // reception queue, read-only
+   int  volatile tx_hd;      // transmission queue head index
+   int           tx_tl;      // transmission queue tail index
+   char          tx_q[Q_SZ]; // transmission queue, write-only
+   int           nrx;        // number of characters in rx_queue
+   int           ntx;        // number of spaces in tx_queue
 } UARTdriver;
 
 
 #define EOT 0x04        // End Of Transmission character
 
 // convert small integer (i<16) to hexadecimal digit
-#define i2c(a) ( ((a) < 10)   ? ((a)+'0') : (((a)+'a')-10) )
+static inline unsigned char i2c(int i) {
+  ( ((i) < 10) ? ((i)+'0') : (((i & 0x0f)+'a')-10) );
+  return i;
+}
 
 // convert hexadecimal digit to integer (i<16)
-#define c2i(a) ( ((a) <= '9') ? ((a)-'0') : (((a)-'a')+10) )
+static inline unsigned int c2i(char c) {
+  ( ((c) <= '9') ? ((c)-'0') : (((c)-'a')+10) );
+  return c;
+}
 

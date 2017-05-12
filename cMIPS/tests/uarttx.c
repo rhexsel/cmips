@@ -39,12 +39,12 @@ int strcopy(const char *y, char *x)
 
 int main(void) { // send a string through the UART serial interface
   int i;
-  volatile unsigned int state, val;
+  unsigned int state, val;
 
-  volatile Tserial *uart;  // tell GCC to not optimize away any code
+  Tserial volatile *uart;  // tell GCC to not optimize away any code
   Tcontrol ctrl;
 
-  volatile int *counter;        // address of counter
+  int volatile *counter;   // address of counter
 
 #if LONG_STRING
   i = strcopy(dog, s);
