@@ -29,6 +29,10 @@ package p_UART is
   constant BAUD_RT_5 : integer :=  128/2;
   constant BAUD_RT_6 : integer := 2604/2;  -- 19.200,  434/2 = 115.200
   constant BAUD_RT_7 : integer := 5208/2;  --  9.600
+
+  -- top limit for baud-rate divider: 50.000.000 MHz / 4 = 12.500.000 baud
+  --   which, adjusted to the next upward power of two is 16M
+  constant BAUD_CNTR_LIMIT : integer := ((16*1024*1024)-1);  -- 
 end p_UART;
 
 -- package body p_UART is
@@ -636,7 +640,7 @@ begin
 
   -- max divisor would be 50,000,000 / 1,200 bps = 46.667 < 64k-1
   U_bit_rt_tx: process(clk, rst, tx_ld, en_tx_clk)
-    variable baud_cnt : integer range 0 to 65535;
+    variable baud_cnt : integer range 0 to BAUD_CNTR_LIMIT;
   begin
      if rst = '0' then
       baud_cnt  := 0;
@@ -675,7 +679,7 @@ begin
                    BAUD_RT_7 when others;
 
   U_bit_rt_rx: process(clk, rst, reset_rxck, en_rx_clk)
-    variable baud_cnt : integer range 0 to 65535;
+    variable baud_cnt : integer range 0 to BAUD_CNTR_LIMIT;
   begin
     if rst = '0' then
       baud_cnt  := 0;

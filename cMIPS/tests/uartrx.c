@@ -36,7 +36,7 @@ int main(void) { // receive a string through the UART serial interface
   ctrl.speed = SPEED;  // operate at the second highest data rate
   uart->ctl  = ctrl;
 
-  i = -1;
+  i = 0;
 
   ctrl.ign   = 0;
   ctrl.rts   = 1;      // make RTS=1 to activate RemoteUnit
@@ -47,18 +47,19 @@ int main(void) { // receive a string through the UART serial interface
   uart->ctl  = ctrl;
 
   do {
-    i = i+1;
 
     while ( (state = (int)uart->stat.rxFull) == 0 )
       delay_cycle(1);        // just do something
     s[i] = (char)uart->data;
+
     if (s[i] != EOT) {
       to_stdout( s[i] );     //   and print new char
     } else {
       to_stdout( '\n' );     //   print new-line
       to_stdout( EOT );      //   and signal End Of Transmission
     }
-  } while (s[i] != EOT);
+
+  } while (s[i++] != EOT);
 
   return(state);
 

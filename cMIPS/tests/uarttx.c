@@ -64,15 +64,15 @@ int main(void) { // send a string through the UART serial interface
   ctrl.rts   = 0;  // make RTS=0 so RemoteUnit won't transmit, just receive
   uart->ctl = ctrl;
 
-  i = -1;
+  i = 0;
+
   do {
 
-    i = i+1;
     while ( (state = (int)uart->stat.txEmpty) == 0 )
       delay_cycle(1);      // do something
     uart->data = (int)s[i];
 
-  } while (s[i] != '\0');  // '\0' is transmitted in previous line
+  } while (s[i++] != '\0');  // '\0' is transmitted in previous line
 
   // then wait until last char is sent out of the shift-register to return
   startCounter(COUNTING, 0);

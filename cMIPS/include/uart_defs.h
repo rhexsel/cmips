@@ -17,7 +17,7 @@ typedef struct status {  // status register fields (uses only ls byte)
     int_RX_full: 1,      // interrupt pending on RX full (bit 3)
     ign1    : 1,         // ignored (bit 2)
     framing : 1,         // framing error (bit 1)
-    overun  : 1;         // overun error (bit 0)
+    overrun : 1;         // overrun error (bit 0)
 } Tstatus;
 
 typedef struct interr  { // interrupt clear bits (uses only ls byte)
@@ -32,10 +32,10 @@ typedef struct interr  { // interrupt clear bits (uses only ls byte)
 
 
 typedef struct serial {
-  volatile       Tcontrol ctl;  // RD+WR, addr (int *)IO_UART_ADDR
-  const volatile Tstatus  stat; // RD,    addr (int *)(IO_UART_ADDR+1)
-  Tinterr               interr; // WR,    addr (int *)(IO_UART_ADDR+2)
-  volatile int            data; // RD+WR, addr (int *)(IO_UART_ADDR+3)
+  volatile       Tcontrol ctl;   // RD+WR, at (int *)IO_UART_ADDR
+  const volatile Tstatus  stat;  // RD,    at (int *)(IO_UART_ADDR+1)
+  volatile       Tinterr interr; // WR,    at (int *)(IO_UART_ADDR+2)
+  volatile       int       data; // RD+WR, at (int *)(IO_UART_ADDR+3)
 } Tserial;
 
 
