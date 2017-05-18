@@ -27,6 +27,7 @@ length=1
 unit=m
 gtkwconf=pipe
 synth=
+recompile=false
 
 touch input.data input.txt serial.inp
 
@@ -38,6 +39,7 @@ usage:  $0 [options]
 
 OPTIONS:
    -h    Show this message
+   -C    re-create simulator by re-compiling all VHDL code
    -t T  number of time-units to run (default ${length})
    -u U  unit of time scale {m,u,n,p} (default ${unit}s)
    -n    send simulator output do /dev/null, else to v_cMIPS.vcd
@@ -51,6 +53,8 @@ while true ; do
 
     case "$1" in
         -h | "-?") usage ; exit 1
+            ;;
+        -C) recompile=true
             ;;
         -t) length=$2
             shift
@@ -82,7 +86,9 @@ gfile=${gtkwconf%%.sav}
 sav="${tree}"/${gfile}.sav
 
 
-"${bin}"/build.sh $synth || exit 1
+if [ $recompile = true ] ; then
+   "${bin}"/build.sh $synth || exit 1
+fi
 
 options="--ieee-asserts=disable --stop-time=${length}${unit}s --vcd=${visual}"
 
