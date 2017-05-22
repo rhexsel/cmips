@@ -91,6 +91,7 @@ package p_MEMORY is
   constant IO_KEYBD_ADDR   : integer := IO_BASE_ADDR + 10*IO_ADDR_RANGE;
   constant IO_LCD_ADDR     : integer := IO_BASE_ADDR + 11*IO_ADDR_RANGE;
   constant IO_SDC_ADDR     : integer := IO_BASE_ADDR + 12*IO_ADDR_RANGE;
+  constant IO_DMA_ADDR     : integer := IO_BASE_ADDR + 13*IO_ADDR_RANGE;
   constant IO_HIGHEST_ADDR : integer :=
     IO_BASE_ADDR + (IO_MAX_NUM_DEVS - 1)*IO_ADDR_RANGE;
 

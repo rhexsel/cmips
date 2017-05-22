@@ -34,10 +34,10 @@ entity from_stdin is
         clk     : in  std_logic;
         sel     : in  std_logic;
         wr      : in  std_logic;
-        data    : out std_logic_vector);
+        data    : out reg32);
 end from_stdin;
 
-architecture behavioral of from_stdin is
+architecture simulation of from_stdin is
 
 begin
 
@@ -62,8 +62,14 @@ begin
     end if;
   end process U_READ_IN;
   
-end behavioral;
+end architecture simulation;
 -- ++ from_stdin +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+architecture fake of from_stdin is
+begin
+  data <= (others => 'X');  
+end architecture fake;
+--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 
@@ -85,7 +91,7 @@ entity print_data is
         data    : in  reg32);
 end print_data;
 
-architecture behavioral of print_data is
+architecture simulation of print_data is
 
   file output : text open write_mode is "STD_OUTPUT";
 
@@ -100,8 +106,15 @@ begin
     end if;
   end process U_WRITE_OUT;
 
-end behavioral;
+end architecture simulation;
 -- ++ print_data +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+architecture fake of print_data is
+begin
+end architecture fake;
+--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
 
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -122,7 +135,7 @@ entity to_stdout is
         data    : in  std_logic_vector);
 end to_stdout;
 
-architecture behavioral of to_stdout is
+architecture simulation of to_stdout is
   
   file output : text open write_mode is "STD_OUTPUT";
 
@@ -140,8 +153,14 @@ begin
     end if;
   end process U_WRITE_OUT;
   
-end behavioral;
+end architecture simulation;
 -- ++ to_stdout +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+architecture fake of to_stdout is
+begin
+end architecture fake;
+--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 
 
 
@@ -170,7 +189,7 @@ entity write_data_file is
         dump_ram : out std_logic);
 end write_data_file;
 
-architecture behavioral of write_data_file is
+architecture simulation of write_data_file is
 
   type uint_file_type is file of integer;
   file output_file: uint_file_type open write_mode is OUTPUT_FILE_NAME;
@@ -197,13 +216,20 @@ begin
     
   end process U_write_uint;
 
-end behavioral;                         -- write_file_data
+end architecture simulation;                            -- write_file_data
+--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+architecture fake of write_data_file is
+begin
+  dump_ram <= 'X';
+end architecture fake;
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 
+
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- peripheral: read_data_from_file
+-- peripheral: read_data_file
 --             read one 32bit integer from file "input.data"
 --  if not EOF then write data to file
 --  else status <= 1
@@ -226,7 +252,7 @@ entity read_data_file is
         byte_sel : in  reg4);
 end read_data_file;
 
-architecture behavioral of read_data_file is
+architecture simulation of read_data_file is
 
   type uint_file_type is file of integer;
   file input_file: uint_file_type open read_mode is INPUT_FILE_NAME;
@@ -268,7 +294,13 @@ begin
     
   end process U_read_uint;
 
-end behavioral;
+end architecture simulation;
+--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+architecture fake of read_data_file is
+begin
+  data <= (others => 'X');
+end architecture fake;
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -431,7 +463,7 @@ end behavioral;
 
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- peripheral: system statistics: gather statistics in one peripheral
+-- peripheral: system statistics: gather statistics in one place
 -- processor reads performance counters, on word boundaries, adressed as
 -- cnt_dc_ref    when "00000", 0
 -- cnt_dc_rd_hit when "00100", 4
@@ -460,7 +492,7 @@ entity sys_stats is
         cnt_ic_hit : in  integer);
 end sys_stats;
 
-architecture behavioral of sys_stats is
+architecture simulation of sys_stats is
 begin
 
   U_SYNC_OUTPUT: process(clk,sel)
@@ -484,8 +516,15 @@ begin
 
   end process U_SYNC_OUTPUT;
 
-end behavioral;
+end architecture simulation;
 -- ++ system statistics ++++++++++++++++++++++++++++++++++++++++++++++++++
+
+architecture fake of sys_stats is
+begin
+  data <= (others => 'X');
+end architecture fake;
+--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

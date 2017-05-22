@@ -34,7 +34,6 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 use work.p_wires.all;
--- use work.p_memory.all;
 
 entity DISK is
   port (rst      : in    std_logic;
@@ -56,10 +55,13 @@ entity DISK is
         dma_type : out   reg4);
   constant NUM_BITS : integer := 32;
   constant START_VALUE : reg32 := (others => '0');
-
 end entity DISK;
 
-architecture functional of DISK is
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- simulation version -- logic too complex for synthesis, model is useless
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+architecture simulation of DISK is
 
   component registerN is
     generic (NUM_BITS: integer; INIT_VAL: std_logic_vector);
@@ -175,12 +177,12 @@ begin  -- functional
     port map (clk, rst_curr, '0', en_curr, ctrl(11 downto 0), current);
 
   
-  clear_irq <= '0' when s_intw = '1' and data_inp(I_CLR) = '1' else '1';
+  clear_irq <= '0' when (s_intw = '1' and data_inp(I_CLR) = '1') else '1';
 
   set_irq <= ( (ctrl(C_INT) and done) or
                (s_intw and data_inp(I_SET)) );
   
-  d_set_int_done <= (done or set_irq) and clear_irq;
+  d_set_int_done <= (int_done or set_irq) and clear_irq;
   U_tx_int: FFDsimple port map (clk, rst, d_set_int_done, int_done);
   
 
@@ -309,23 +311,26 @@ begin  -- functional
   
   
   
-end architecture functional;
+end architecture simulation;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-architecture FPGA of DISK is
+-- synthesis version - compiler will optimize all away (one hopes)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+architecture fake of DISK is
 begin
-  rdy      <= '0';
+  rdy      <= 'X';
   busReq   <= '0';
+  irq      <= '0';
   data_out <= (others => 'X');
   dma_addr <= (others => 'X');
   dma_dout <= (others => 'X');
-  dma_wr   <= '1';
-  dma_aval <= '1';
-  dma_type <= b"1111";
-end architecture FPGA;
+  dma_wr   <= 'X';
+  dma_aval <= 'X';
+  dma_type <= (others => 'X');
+end architecture fake;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
