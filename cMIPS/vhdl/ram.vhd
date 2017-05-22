@@ -17,6 +17,15 @@
 
 
 
+
+-- To simplify (and accelerate) internal address decoding,
+--  the BASE of the RAM addresses MUST be allocated at an
+--  address that is larger the RAM capacity.  Otherwise, the
+--  base must be subtracted from the address on every reference,
+--  which means having an adder in the critical path.  Bad idea.
+
+
+
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- syncronous RAM for synthesis; NON-initialized, byte-indexed
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -304,12 +313,6 @@ begin  -- simulation
       
     else  -- (rst = '1'), normal operation
 
-      -- to simplify (and accelerate) internal address decoding,
-      --  the BASE of the RAM addresses MUST be allocated at an
-      --  address that is larger the RAM capacity.  Otherwise, the
-      --  base must be subtracted from the address on every reference,
-      --  which means having an adder in the critical path.  Bad idea.
-      
       u_addr := unsigned(addr( (DATA_ADDRS_BITS-1) downto 0 ) );
       index  := to_integer(u_addr);
 

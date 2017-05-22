@@ -9,7 +9,7 @@ MEMORY
                     LENGTH = 0x00020000, /* x_DATA_MEM_SZ */
         sdram (!rx) : ORIGIN = 0x04000000, /* x_SDRAM_BASE_ADDR */
                       LENGTH = 0x02000000, /* x_SDRAM_MEM_SZ */
-        io (!rx)  : ORIGIN = 0x3c000000, /* not used, do not remove       */
+        io (!rx)  : ORIGIN = 0x3c000000, /* not used by LD, do not remove */
                     LENGTH = 0x00020000  /* edMemory.sh needs thess lines */
 }
 

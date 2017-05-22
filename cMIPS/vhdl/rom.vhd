@@ -36,7 +36,7 @@ entity ROM is
         data   : out   reg32);
   
   -- FPGA version
-  -- constant INST_ADDRS_BITS : natural := log2_ceil(INST_MEM_SZ) - 1;
+  constant INST_ADDRS_BITS : natural := log2_ceil(INST_MEM_SZ);
   subtype rom_address is natural range 0 to ((INST_MEM_SZ / 4) - 1);
 end entity ROM;
 
@@ -90,15 +90,15 @@ begin  -- rtl
   U_RTL_ROM: alt_mf_rom port map (raw_addr, clken, strobe, instrn);
 
   
-  U_ROM_ACCESS: process (strobe,instrn,sel)
+  U_ROM_ACCESS: process (instrn, sel, index)
   begin
     if sel = '0' then
       data <= instrn;
       assert (index >= 0) and (index < INST_MEM_SZ/4)
         report "rom index out of bounds: " & natural'image(index)
         severity failure;
-      -- assert false -- DEBUG
-      --   report "romRD["& natural'image(index) &"]="& SLV32HEX(data); 
+      assert TRUE -- DEBUG
+        report "romRD["& natural'image(index) &"]="& SLV32HEX(instrn); 
     else
       data <= (others => 'X');
     end if;

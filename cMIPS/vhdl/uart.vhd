@@ -30,7 +30,7 @@ package p_UART is
   constant BAUD_RT_6 : integer := 2604/2;  -- 19.200,  434/2 = 115.200
   constant BAUD_RT_7 : integer := 5208/2;  --  9.600
 
-  -- top limit for baud-rate divider: 50.000.000 MHz / 4 = 12.500.000 baud
+  -- top limit for baud-rate divider: 50.000.000 Hz / 4 = 12.500.000 baud
   --   which, adjusted to the next upward power of two is 16M
   constant BAUD_CNTR_LIMIT : integer := ((16*1024*1024)-1);  -- 
 end p_UART;
