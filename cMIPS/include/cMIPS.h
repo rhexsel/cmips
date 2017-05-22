@@ -23,6 +23,7 @@
 #define IO_KEYBD_ADDR   (x_IO_BASE_ADDR +10 * x_IO_ADDR_RANGE)
 #define IO_LCD_ADDR     (x_IO_BASE_ADDR +11 * x_IO_ADDR_RANGE)
 #define IO_SDC_ADDR     (x_IO_BASE_ADDR +12 * x_IO_ADDR_RANGE)
+#define IO_DMA_ADDR     (x_IO_BASE_ADDR +13 * x_IO_ADDR_RANGE)
 
 
 extern void exit(int);

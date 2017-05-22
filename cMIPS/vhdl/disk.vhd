@@ -151,24 +151,37 @@ begin  -- functional
 
 
   -- control file operations -----------------------------------------
-  U_FILE_CTRL: process(s_ctrl)
+  U_FILE_CTRL: process(rst, clk, s_ctrl)
+    variable status : file_open_status := open_ok;
+    variable i_status : integer := 0;
   begin
 
-    if s_ctrl = '1' then
-      if ctrl(C_oper) = '1' then          -- read file
-        if src(0) = '0' then
-          file_open(my_file, "DMA_0.src", read_mode);
-        else 
-          file_open(my_file, "DMA_1.src", read_mode);
+    if rst = '1' then
+
+      if s_ctrl = '1' and falling_edge(clk) then
+        if ctrl(C_OPER) = '1' then          -- read file
+          if src(0) = '0' then
+            file_open(status, my_file, "DMA_0.src", read_mode);
+          else 
+            file_open(status, my_file, "DMA_1.src", read_mode);
+          end if;
+          i_status := file_open_status'pos(status);
+          assert FALSE
+            report LF&"fileRDopen["&SLV32HEX(ctrl)&"]:"&SLV32HEX(src)&" "&
+                   natural'image(i_status);
+        else                                --  write file
+          if dst(0) = '0' then
+            file_open(status, my_file, "DMA_0.dst", write_mode);
+          else 
+            file_open(status, my_file, "DMA_1.dst", write_mode);
+          end if;
+          assert FALSE
+            report LF&"fileWRopen["&SLV32HEX(ctrl)&"]:"&SLV32HEX(dst)&" "&
+                   natural'image(i_status);
         end if;
-      else                                --  write file
-        if dst(0) = '0' then
-          file_open(my_file, "DMA_0.dst", write_mode);
-        else 
-          file_open(my_file, "DMA_1.dst", write_mode);
-        end if;
-      end if;
-    end if;   
+      end if;   
+
+    end if; -- reset
     
   end process U_FILE_CTRL; -------------------------------------------
 
@@ -200,6 +213,8 @@ begin  -- functional
   
   U_st_transitions: process(dma_current_st, s_ctrl, s_src, s_dst, busFree,
                             current, ctrl, int_done)
+    variable i_datum : integer;
+    variable i_addr  : reg32;
   begin
     case dma_current_st is
       when st_init =>                   -- 0
@@ -235,11 +250,28 @@ begin  -- functional
 
       when st_xfer =>                   -- 5
         if current /= ctrl(11 downto 0) then    -- not done
+
           if busFree = '0' then
             dma_next_st <= st_bus;
           else
+            i_addr := x"00000" & current;
+            if ctrl(C_OPER) = '1' then  -- read
+              if not endfile(my_file) then
+                read( my_file, i_datum );
+                datum <= std_logic_vector(to_signed(i_datum, 32));
+                assert TRUE
+                  report LF&"DISKrd["&SLV32HEX(i_addr)&"]:"&SLV32HEX(datum);
+              end if;
+            else  -- write
+              if  falling_edge(clk) then
+                write( my_file, to_integer(signed(dma_dinp)) );
+                assert TRUE
+                  report LF&"DISKwr["&SLV32HEX(i_addr)&"]:"&SLV32HEX(dma_dinp);
+              end if;
+            end if;
             dma_next_st <= st_xfer;
           end if;
+
         else                                    -- done
           dma_next_st <= st_int;
         end if;
@@ -250,6 +282,7 @@ begin  -- functional
         else
           dma_next_st <= st_idle;
         end if;
+        file_close(my_file);
         
       when others =>                    -- ??
         dma_next_st <= st_idle;
@@ -300,7 +333,7 @@ begin  -- functional
         en_curr    <= '0';              -- do not increment address
         ld_curr    <= '0';              -- do not load address
         take_bus   <= '0';              -- leave the bus alone
-        done       <= '1';              -- am I done?
+        done       <= '0';              -- am I done?
     end case;
   end process U_st_outputs; -- -----------------------------------
 

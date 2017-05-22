@@ -20,6 +20,7 @@
 	.set HW_keybd_addr,  (x_IO_BASE_ADDR + 10 * x_IO_ADDR_RANGE)
 	.set HW_lcd_addr,    (x_IO_BASE_ADDR + 11 * x_IO_ADDR_RANGE)
 	.set HW_sdc_addr,    (x_IO_BASE_ADDR + 12 * x_IO_ADDR_RANGE)
+	.set HW_dma_addr,    (x_IO_BASE_ADDR + 13 * x_IO_ADDR_RANGE)
 
 	# see vhdl/packageMemory.vhd for addresses
 	.set x_EXCEPTION_0000,0x00000130
