@@ -16,12 +16,14 @@
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
--- disk(0): ctrl(31)=oper[1rd, 0wr], (30)=doInterrupt, (29..12)=0
---          (11..0)=numBytes [word aligned]
+-- disk(0): ctrl(31)=oper[1rd, 0wr], (30)=doInterrupt,
+--          (29)=0, (28)=setIRQ, (27)=clrIRQ, (29..12)=0
+--          (11..0)=xferSize [word aligned]
 -- disk(1): stat(31)=oper[1rd, 0wr], (30)=irqPending, (29)=busy
 --          (28..12)=0, (11..0)=currentDMAaddress
 -- disk(2): srd [rd=disk file, wr=memory address]
 -- disk(3): dst [rd=memory address, wr=disk file]
+-- disk(4): interrupt, (1)=setIRQ, (0)=clrIRQ
 
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -42,9 +44,10 @@ entity DISK is
         wr       : in    std_logic;     -- active in '0'
         busFree  : in    std_logic;     -- '1' = bus will be free next cycle
         busReq   : out   std_logic;     -- '1' = bus will be used next cycle
-        addr     : in    reg2;
+        addr     : in    reg3;
         data_inp : in    reg32;
         data_out : out   reg32;
+        irq      : out   std_logic;
         dma_addr : out   reg32;
         dma_dinp : in    reg32;
         dma_dout : out   reg32;
@@ -73,26 +76,41 @@ architecture functional of DISK is
          co:               out std_logic);
   end component countNup;
 
-  constant C_OPER : integer := 31;      -- operation 1=rd, 0=wr
-  constant C_INT  : integer := 30;      -- interrupt when finished=1
-  constant S_BUSY : integer := 29;      -- controller busy=1
+  component FFDsimple is
+    port(clk, rst, D : in std_logic; Q : out std_logic);
+  end component FFDsimple;
 
+  constant C_OPER   : integer := 31;      -- operation 1=rd, 0=wr
+  constant C_INT    : integer := 30;      -- interrupt when finished=1
+  constant S_BUSY   : integer := 29;      -- controller busy=1
+  constant I_SET    : integer :=  1;      -- set IRQ
+  constant I_CLR    : integer :=  0;      -- clear IRQ  
+  
   type int_file is file of integer;
   file my_file : int_file;
+
+  type dma_state is (st_init, st_idle, st_src, st_dst, st_bus, st_xfer,
+                     st_int, st_clr);
+  attribute SYN_ENCODING of dma_state : type is "safe";
+  signal dma_current_st, dma_next_st : dma_state;
+  signal dma_current : integer;         -- debugging only
   
   signal ld_ctrl, s_ctrl, s_stat, ld_src, s_src, ld_dst, s_dst : std_logic;
   signal busy, take_bus, ld_curr, rst_curr, en_curr : std_logic;
-  signal ctrl, src, dst, stat : reg32;
+  signal ctrl, src, dst, stat, datum : reg32;
   signal current : reg12;
-
+  signal s_intw, s_intr, set_irq, clear_irq, done : std_logic;
+  signal d_set_int_done, int_done : std_logic;
 begin  -- functional
 
   rdy <= '0';                           -- simulation only, never waits
 
-  s_ctrl <= '1' when sel = '0' and addr = b"00" else '0'; -- R+W
-  s_stat <= '1' when sel = '0' and addr = b"01" else '0'; -- R+W
-  s_src  <= '1' when sel = '0' and addr = b"10" else '0'; -- W
-  s_dst  <= '1' when sel = '0' and addr = b"11" else '0'; -- W
+  s_ctrl <= '1' when sel = '0' and addr = b"000" else '0'; -- R+W
+  s_stat <= '1' when sel = '0' and addr = b"010" else '0'; -- R+W
+  s_src  <= '1' when sel = '0' and addr = b"100" else '0'; -- W
+  s_dst  <= '1' when sel = '0' and addr = b"110" else '0'; -- W
+  s_intw <= '1' when sel = '0' and addr = b"100" and wr = '0' else '0'; -- W
+  s_intr <= '1' when sel = '0' and addr = b"100" and wr = '1' else '0'; -- R
 
   ld_ctrl <= '0' when s_ctrl = '1' and wr = '0' else '1';  
   U_CTRL: registerN  generic map (NUM_BITS, START_VALUE)
@@ -109,11 +127,14 @@ begin  -- functional
   stat <= ctrl(C_OPER) & ctrl(C_INT) & busy & '1' & x"0000" & current;
   
   with addr select
-    data_out <= ctrl  when "00",
-                stat  when "01",
-                src   when "10",
-                dst   when others;
+    data_out <= ctrl  when "000",
+                stat  when "001",
+                src   when "010",
+                dst   when "011",
+                x"00000000" when others;  -- interrupts
 
+  irq      <= int_done;
+  
   busReq   <= take_bus;
   
   dma_type <= b"1111";                  -- always transfers words
@@ -124,10 +145,10 @@ begin  -- functional
   
   dma_dout <= datum    when ctrl(C_OPER) = '0' else (others => 'X');
 
-  dma_dinp <= data_inp when ctrl(C_OPER) = '1' else (others => 'X');
+  -- dma_dinp <= data_inp when ctrl(C_OPER) = '1' else (others => 'X');
 
 
- 
+  -- control file operations -----------------------------------------
   U_FILE_CTRL: process(s_ctrl)
   begin
 
@@ -152,7 +173,136 @@ begin  -- functional
   rst_curr <= not(ld_curr);
   U_CURRENT: countNup generic map (12)
     port map (clk, rst_curr, '0', en_curr, ctrl(11 downto 0), current);
+
   
+  clear_irq <= '0' when s_intw = '1' and data_inp(I_CLR) = '1' else '1';
+
+  set_irq <= ( (ctrl(C_INT) and done) or
+               (s_intw and data_inp(I_SET)) );
+  
+  d_set_int_done <= (done or set_irq) and clear_irq;
+  U_tx_int: FFDsimple port map (clk, rst, d_set_int_done, int_done);
+  
+
+  -- state register---------------------------------------------------
+  U_st_reg: process(rst,clk)
+  begin
+    if rst = '0' then
+      dma_current_st <= st_init;
+    elsif rising_edge(clk) then
+      dma_current_st <= dma_next_st;
+    end if;
+  end process U_st_reg;
+  dma_current <= dma_state'pos(dma_current_st);  -- debugging only
+
+  
+  U_st_transitions: process(dma_current_st, s_ctrl, s_src, s_dst, busFree,
+                            current, ctrl, int_done)
+  begin
+    case dma_current_st is
+      when st_init =>                   -- 0
+        dma_next_st <= st_idle;
+
+      when st_idle =>                   -- 1
+        if s_ctrl = '1' then
+          dma_next_st <= st_src;
+        else
+          dma_next_st <= st_idle;
+        end if;
+
+      when st_src =>                    -- 2
+        if s_src = '1' then
+          dma_next_st <= st_dst;
+        else
+          dma_next_st <= st_src;
+        end if;
+
+      when st_dst =>                    -- 3
+        if s_dst = '1' then
+          dma_next_st <= st_bus;
+        else
+          dma_next_st <= st_dst;
+        end if;
+
+      when st_bus =>                    -- 4
+        if busFree = '0' then
+          dma_next_st <= st_bus;
+        else
+          dma_next_st <= st_xfer;
+        end if;
+
+      when st_xfer =>                   -- 5
+        if current /= ctrl(11 downto 0) then    -- not done
+          if busFree = '0' then
+            dma_next_st <= st_bus;
+          else
+            dma_next_st <= st_xfer;
+          end if;
+        else                                    -- done
+          dma_next_st <= st_int;
+        end if;
+
+      when st_int =>                    -- 6
+        if int_done = '1' then
+          dma_next_st <= st_int;
+        else
+          dma_next_st <= st_idle;
+        end if;
+        
+      when others =>                    -- ??
+        dma_next_st <= st_idle;
+    end case;
+  end process U_st_transitions; -- -----------------------------------
+
+
+  U_st_outputs: process(dma_current_st)
+  begin
+    case dma_current_st is
+      when st_init | st_idle | st_src =>
+        busy       <= '0';              -- not busy
+        en_curr    <= '0';              -- do not increment address
+        ld_curr    <= '0';              -- do not load address
+        take_bus   <= '0';              -- leave the bus alone
+        done       <= '0';              -- not done
+
+      when st_dst =>
+        busy       <= '1';              -- busy
+        en_curr    <= '0';              -- do not increment address
+        ld_curr    <= '1';              -- load address
+        take_bus   <= '0';              -- leave the bus alone
+        done       <= '0';              -- not done
+
+      when st_bus =>
+        busy       <= '1';              -- busy
+        en_curr    <= '0';              -- do not increment address
+        ld_curr    <= '0';              -- do not load address
+        take_bus   <= '0';              -- leave the bus alone
+        done       <= '0';              -- not done
+
+      when st_xfer =>
+        busy       <= '1';              -- busy
+        en_curr    <= '1';              -- increment address
+        ld_curr    <= '0';              -- do not load address
+        take_bus   <= '1';              -- leave the bus alone
+        done       <= '0';              -- not done
+
+      when st_int =>
+        busy       <= '1';              -- busy
+        en_curr    <= '0';              -- increment address
+        ld_curr    <= '0';              -- do not load address
+        take_bus   <= '0';              -- leave the bus alone
+        done       <= '1';              -- finally, done
+        
+      when others =>
+        busy       <= '1';              -- busy
+        en_curr    <= '0';              -- do not increment address
+        ld_curr    <= '0';              -- do not load address
+        take_bus   <= '0';              -- leave the bus alone
+        done       <= '1';              -- am I done?
+    end case;
+  end process U_st_outputs; -- -----------------------------------
+
+
   
   
 

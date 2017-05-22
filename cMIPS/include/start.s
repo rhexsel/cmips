@@ -223,7 +223,7 @@ _excp_0180:
         mfc0 $k0, c0_cause
 	sw   $k0, 0*4($k1)
 	
-	andi $k0, $k0, 0x3f    # keep only the first 16 ExceptionCodes & b"00"
+	andi $k0, $k0, 0x3c    # keep only the first 16 ExceptionCodes & b"00"
 	sll  $k0, $k0, 1       # displacement in vector with 8 bytes/element
 	lui  $k1, %hi(excp_tbl)
         ori  $k1, $k1, %lo(excp_tbl)
@@ -281,7 +281,7 @@ _excp_0180ret:
 	lui  $k1, %hi(_excp_saves) # Read previous contents of STATUS
 	ori  $k1, $k1, %lo(_excp_saves)
 	lw   $k0, 1*4($k1)
-                                   #  and do not modify its contents
+        nop                        #  and do not modify its contents
 	ori  $k0, $k0, M_StatusIEn #  and keep user/kernel mode
 	mtc0 $k0, c0_status	   #  but enable all interrupts
 	ehb
@@ -388,7 +388,29 @@ _excp_BFC0:
 	
 
 	#================================================================
-	# modify the page table:
+	# read the page table:
+	# int PT_read(void *V_addr, int component)
+	#   component is in {0=entrylo0, 1-int0, 2=entrylo1, 3=int1}
+	.text
+	.global PT_read
+
+	.set noreorder
+	.ent PT_read
+PT_read:
+	srl  $a0, $a0, 9	# (_PT + (V_addr >>13)*16)
+	la   $v0, PTbase
+	add  $a0, $v0, $a0
+	andi $a1, $a1, 0x0003	# make sure component is in range
+	sll  $a1, $a1, 2	# component * 4
+	add  $a0, $a0, $a1	# (_PT + (V_addr >>13)*16).component
+	jr   $ra
+	lw   $v0, 0($a0)	# return PT[V_addr].component
+	.end PT_read
+	##---------------------------------------------------------------
+
+	
+	#================================================================
+	# update/modify the page table:
 	# void PT_update(void *V_addr, int component, int new_value)
 	#   component is in {0=entrylo0, 1-int0, 2=entrylo1, 3=int1}
 	.text
@@ -417,7 +439,7 @@ PT_update:
 	##
 	## intLo0 and intLo1 are:
 	## nil_31..6 Modified_5 Used_4  Writable_3  eXecutable_2 Status_1,0
-	## Status: 00=unmapped, 01=mapped, 10=in_secondary_storage, 11=undef
+	## Status: 00=unmapped, 01=mapped, 10=in_secondary_storage, 11=locked
 	##
 	.section .PT,"aw",@progbits
 	.align 4
