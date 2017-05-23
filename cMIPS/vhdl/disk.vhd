@@ -82,7 +82,10 @@ architecture simulation of DISK is
     port(clk, rst, D : in std_logic; Q : out std_logic);
   end component FFDsimple;
 
-  constant C_OPER   : integer := 31;      -- operation 1=rd, 0=wr
+  constant C_OPER    : integer := 31;      -- operation 1=rd, 0=wr
+  constant C_OPER_RD : std_logic := '1';
+  constant C_OPER_WR : std_logic := '0';
+  
   constant C_INT    : integer := 30;      -- interrupt when finished=1
   constant S_BUSY   : integer := 29;      -- controller busy=1
   constant I_SET    : integer :=  1;      -- set IRQ
@@ -95,22 +98,24 @@ architecture simulation of DISK is
                      st_int, st_clr);
   attribute SYN_ENCODING of dma_state : type is "safe";
   signal dma_current_st, dma_next_st : dma_state;
-  signal dma_current : integer;         -- debugging only
+  signal dma_curr_dbg, current_int, ctrl_int : integer;
   
   signal ld_ctrl, s_ctrl, s_stat, ld_src, s_src, ld_dst, s_dst : std_logic;
   signal busy, take_bus, ld_curr, rst_curr, en_curr : std_logic;
-  signal ctrl, src, dst, stat, datum : reg32;
+  signal ctrl, src, dst, stat, datum : reg32 := (others => '0');
   signal current : reg12;
-  signal s_intw, s_intr, set_irq, clear_irq, done : std_logic;
+  signal base_addr : reg20;
+  signal s_intw, s_intr, set_irq, clear_irq : std_logic;
   signal d_set_int_done, int_done : std_logic;
+  signal done : boolean;
 begin  -- functional
 
   rdy <= '0';                           -- simulation only, never waits
 
   s_ctrl <= '1' when sel = '0' and addr = b"000" else '0'; -- R+W
-  s_stat <= '1' when sel = '0' and addr = b"010" else '0'; -- R+W
-  s_src  <= '1' when sel = '0' and addr = b"100" else '0'; -- W
-  s_dst  <= '1' when sel = '0' and addr = b"110" else '0'; -- W
+  s_stat <= '1' when sel = '0' and addr = b"001" else '0'; -- R+W
+  s_src  <= '1' when sel = '0' and addr = b"010" else '0'; -- W
+  s_dst  <= '1' when sel = '0' and addr = b"011" else '0'; -- W
   s_intw <= '1' when sel = '0' and addr = b"100" and wr = '0' else '0'; -- W
   s_intr <= '1' when sel = '0' and addr = b"100" and wr = '1' else '0'; -- R
 
@@ -126,7 +131,7 @@ begin  -- functional
   U_DST:  registerN  generic map (NUM_BITS, START_VALUE)
     port map (clk, rst, ld_dst, data_inp, dst);
 
-  stat <= ctrl(C_OPER) & ctrl(C_INT) & busy & '1' & x"0000" & current;
+  stat <= ctrl(C_OPER) & ctrl(C_INT) & busy & '0' & x"0000" & current;
   
   with addr select
     data_out <= ctrl  when "000",
@@ -140,14 +145,17 @@ begin  -- functional
   busReq   <= take_bus;
   
   dma_type <= b"1111";                  -- always transfers words
-  dma_wr   <= ctrl(C_OPER);
-  dma_aVal <= take_bus;
+  dma_wr   <= not(ctrl(C_OPER)) or not(take_bus);
+  dma_aVal <= not(take_bus);
 
-  dma_addr <= x"00000" & current;       -- at most 4K transfers
+  base_addr <= dst(31 downto 12) when ctrl(C_OPER) = C_OPER_RD else
+               dst(31 downto 12);
   
-  dma_dout <= datum    when ctrl(C_OPER) = '0' else (others => 'X');
+  dma_addr <= base_addr & current;       -- at most 4K transfers
+  
+  dma_dout <= datum  when ctrl(C_OPER) = C_OPER_RD else (others => '1');
 
-  -- dma_dinp <= data_inp when ctrl(C_OPER) = '1' else (others => 'X');
+  -- dma_dinp <= data_inp when ctrl(C_OPER) = C_OPER_WR else (others => 'X');
 
 
   -- control file operations -----------------------------------------
@@ -159,7 +167,7 @@ begin  -- functional
     if rst = '1' then
 
       if s_ctrl = '1' and falling_edge(clk) then
-        if ctrl(C_OPER) = '1' then          -- read file
+        if data_inp(C_OPER) = C_OPER_RD then          -- read file
           if src(0) = '0' then
             file_open(status, my_file, "DMA_0.src", read_mode);
           else 
@@ -167,7 +175,7 @@ begin  -- functional
           end if;
           i_status := file_open_status'pos(status);
           assert FALSE
-            report LF&"fileRDopen["&SLV32HEX(ctrl)&"]:"&SLV32HEX(src)&" "&
+            report "fileRDopen["&SLV32HEX(ctrl)&"]:"&SLV32HEX(src)&" "&
                    natural'image(i_status);
         else                                --  write file
           if dst(0) = '0' then
@@ -175,8 +183,9 @@ begin  -- functional
           else 
             file_open(status, my_file, "DMA_1.dst", write_mode);
           end if;
+          i_status := file_open_status'pos(status);
           assert FALSE
-            report LF&"fileWRopen["&SLV32HEX(ctrl)&"]:"&SLV32HEX(dst)&" "&
+            report "fileWRopen["&SLV32HEX(ctrl)&"]:"&SLV32HEX(dst)&" "&
                    natural'image(i_status);
         end if;
       end if;   
@@ -185,14 +194,19 @@ begin  -- functional
     
   end process U_FILE_CTRL; -------------------------------------------
 
-  rst_curr <= not(ld_curr);
+  rst_curr <= not(ld_curr) and rst;
   U_CURRENT: countNup generic map (12)
     port map (clk, rst_curr, '0', en_curr, ctrl(11 downto 0), current);
+
+  current_int <= to_integer(signed(current));
+  ctrl_int    <= to_integer(signed(ctrl(11 downto 0)));
+                            
+  done <= current_int = ctrl_int;
 
   
   clear_irq <= '0' when (s_intw = '1' and data_inp(I_CLR) = '1') else '1';
 
-  set_irq <= ( (ctrl(C_INT) and done) or
+  set_irq <= ( (ctrl(C_INT) and BOOL2SL(done)) or
                (s_intw and data_inp(I_SET)) );
   
   d_set_int_done <= (int_done or set_irq) and clear_irq;
@@ -208,13 +222,13 @@ begin  -- functional
       dma_current_st <= dma_next_st;
     end if;
   end process U_st_reg;
-  dma_current <= dma_state'pos(dma_current_st);  -- debugging only
+  dma_curr_dbg <= dma_state'pos(dma_current_st);  -- debugging only
 
   
-  U_st_transitions: process(dma_current_st, s_ctrl, s_src, s_dst, busFree,
-                            current, ctrl, int_done)
+  U_st_transitions: process(dma_current_st, clk, s_ctrl, s_src, s_dst,
+                            busFree, current, ctrl, int_done)
     variable i_datum : integer;
-    variable i_addr  : reg32;
+    variable i_addr, i_val : reg32;
   begin
     case dma_current_st is
       when st_init =>                   -- 0
@@ -249,29 +263,33 @@ begin  -- functional
         end if;
 
       when st_xfer =>                   -- 5
-        if current /= ctrl(11 downto 0) then    -- not done
+        if not(done) then               -- not done
+
+          i_addr := x"00000" & current;
+          if falling_edge(clk) then
+            if ctrl(C_OPER) = C_OPER_RD then  -- read
+              if not(endfile(my_file)) then
+                read( my_file, i_datum );
+                datum <= std_logic_vector(to_signed(i_datum, 32));
+                i_val := std_logic_vector(to_signed(i_datum, 32));
+                assert FALSE
+                  report "DISKrd["&SLV32HEX(i_addr)&"]:"&SLV32HEX(i_val);
+              else
+                datum <= (others => 'X');
+              end if;
+            else                      -- write = ctrl(C_OPER) = C_OPER_WR
+              write( my_file, to_integer(signed(dma_dinp)) );
+              assert TRUE
+                report "DISKwr["&SLV32HEX(i_addr)&"]:"&SLV32HEX(dma_dinp);
+            end if;
+          end if;
 
           if busFree = '0' then
             dma_next_st <= st_bus;
           else
-            i_addr := x"00000" & current;
-            if ctrl(C_OPER) = '1' then  -- read
-              if not endfile(my_file) then
-                read( my_file, i_datum );
-                datum <= std_logic_vector(to_signed(i_datum, 32));
-                assert TRUE
-                  report LF&"DISKrd["&SLV32HEX(i_addr)&"]:"&SLV32HEX(datum);
-              end if;
-            else  -- write
-              if  falling_edge(clk) then
-                write( my_file, to_integer(signed(dma_dinp)) );
-                assert TRUE
-                  report LF&"DISKwr["&SLV32HEX(i_addr)&"]:"&SLV32HEX(dma_dinp);
-              end if;
-            end if;
             dma_next_st <= st_xfer;
           end if;
-
+          
         else                                    -- done
           dma_next_st <= st_int;
         end if;
@@ -290,7 +308,7 @@ begin  -- functional
   end process U_st_transitions; -- -----------------------------------
 
 
-  U_st_outputs: process(dma_current_st)
+  U_st_outputs: process(dma_current_st, done)
   begin
     case dma_current_st is
       when st_init | st_idle | st_src =>
@@ -298,50 +316,44 @@ begin  -- functional
         en_curr    <= '0';              -- do not increment address
         ld_curr    <= '0';              -- do not load address
         take_bus   <= '0';              -- leave the bus alone
-        done       <= '0';              -- not done
 
       when st_dst =>
         busy       <= '1';              -- busy
         en_curr    <= '0';              -- do not increment address
         ld_curr    <= '1';              -- load address
         take_bus   <= '0';              -- leave the bus alone
-        done       <= '0';              -- not done
 
       when st_bus =>
         busy       <= '1';              -- busy
         en_curr    <= '0';              -- do not increment address
         ld_curr    <= '0';              -- do not load address
         take_bus   <= '0';              -- leave the bus alone
-        done       <= '0';              -- not done
 
       when st_xfer =>
         busy       <= '1';              -- busy
-        en_curr    <= '1';              -- increment address
+        if not(done) then
+          en_curr    <= '1';            -- increment address          
+        else
+          en_curr    <= '0';            -- stop incrementing address          
+        end if;
         ld_curr    <= '0';              -- do not load address
         take_bus   <= '1';              -- leave the bus alone
-        done       <= '0';              -- not done
-
+        
       when st_int =>
         busy       <= '1';              -- busy
         en_curr    <= '0';              -- increment address
         ld_curr    <= '0';              -- do not load address
         take_bus   <= '0';              -- leave the bus alone
-        done       <= '1';              -- finally, done
         
       when others =>
         busy       <= '1';              -- busy
         en_curr    <= '0';              -- do not increment address
         ld_curr    <= '0';              -- do not load address
         take_bus   <= '0';              -- leave the bus alone
-        done       <= '0';              -- am I done?
     end case;
   end process U_st_outputs; -- -----------------------------------
 
-
-  
-  
-
-  
+ 
   
   
 end architecture simulation;

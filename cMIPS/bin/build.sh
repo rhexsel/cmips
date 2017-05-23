@@ -114,7 +114,7 @@ simulator=tb_cmips
 
 pkg="packageWires.vhd packageMemory.vhd packageExcp.vhd"
 
-src="aux.vhd altera.vhd macnica.vhd cache.vhd instrcache.vhd sdram.vhd ram.vhd rom.vhd units.vhd SDcard.vhd io.vhd uart.vhd fpu.vhd pipestages.vhd exception.vhd core.vhd tb_cMIPS.vhd"
+src="aux.vhd altera.vhd macnica.vhd cache.vhd instrcache.vhd sdram.vhd ram.vhd rom.vhd units.vhd SDcard.vhd io.vhd uart.vhd fpu.vhd disk.vhd pipestages.vhd exception.vhd core.vhd tb_cMIPS.vhd"
 
 # build simulator
 #ghdl --clean

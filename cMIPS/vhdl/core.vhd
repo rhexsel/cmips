@@ -43,10 +43,11 @@ entity core is
     d_addr : out   std_logic_vector;
     data_inp : in  std_logic_vector;
     data_out : out std_logic_vector;
-    wr     : out   std_logic;
-    b_sel  : out   std_logic_vector;
-    nmi    : in    std_logic;
-    irq    : in    std_logic_vector;
+    wr       : out std_logic;
+    b_sel    : out std_logic_vector;
+    busFree  : out std_logic;
+    nmi      : in  std_logic;
+    irq      : in  std_logic_vector;
     i_busErr : in  std_logic;
     d_busErr : in  std_logic);
 end core;
@@ -1451,6 +1452,7 @@ begin
   
   abort_ref <= (addrError or (tlb_exception and tlb_stage_mm));
 
+  busFree <= EX_aVal_cond;
 
   -- ----------------------------------------------------------------------
   PIPESTAGE_EX_MM: reg_EX_MM

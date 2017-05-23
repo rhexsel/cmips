@@ -392,10 +392,11 @@ architecture TB of tb_cMIPS is
           d_addr : out   std_logic_vector;
           data_inp : in  std_logic_vector;
           data_out : out std_logic_vector;
-          wr     : out   std_logic;
-          b_sel  : out   std_logic_vector;
-          nmi    : in    std_logic;
-          irq    : in    std_logic_vector;
+          wr       : out std_logic;
+          b_sel    : out std_logic_vector;
+          busFree  : out std_logic;
+          nmi      : in  std_logic;
+          irq      : in  std_logic_vector;
           i_busErr : in  std_logic;
           d_busErr : in  std_logic);
   end component core;
@@ -472,7 +473,7 @@ architecture TB of tb_cMIPS is
   signal rst,ic_reset,a_rst1,a_rst2,a_rst3, cpu_reset : std_logic;
   signal a_reset, async_reset : std_logic;
   signal cpu_i_aVal, cpu_i_wait, wr, cpu_d_aVal, cpu_d_wait : std_logic;
-  signal nmi, i_busError, d_busError : std_logic;
+  signal busFree, nmi, i_busError, d_busError : std_logic;
   signal irq : reg6;
   signal inst_aVal, inst_wait, rom_rdy : std_logic;
   signal data_aVal, data_wait, ram_rdy, mem_wr : std_logic;
@@ -529,7 +530,7 @@ architecture TB of tb_cMIPS is
   signal hDinp, hDout : reg32;
 
   signal dma_addr, dma_dinp, dma_dout : reg32;  -- disk device (simulation)
-  signal dma_wr, dma_aval, dma_irq, busFree, busReq : std_logic;
+  signal dma_wr, dma_aval, dma_irq, busReq : std_logic;
   signal dma_type : reg4;
   
 begin  -- TB
@@ -586,7 +587,7 @@ begin  -- TB
     port map (cpu_reset, clk, phi1,phi2,phi3,
               cpu_i_aVal, cpu_i_wait, i_addr, cpu_instr,
               cpu_d_aVal, cpu_d_wait, d_addr, cpu_data_inp, cpu_data,
-              wr, cpu_xfer, nmi, irq, i_busError, d_busError);
+              wr, cpu_xfer, busFree, nmi, irq, i_busError, d_busError);
 
   U_INST_ADDR_DEC: inst_addr_decode
     port map (rst, cpu_i_aVal, i_addr, inst_aVal, i_busError);
@@ -716,9 +717,6 @@ begin  -- TB
                d_addr(4 downto 2), cpu_data, dma_d_out, dma_irq,
                dma_addr, dma_dinp, dma_dout, dma_wr, dma_aval, dma_type);
 
-  busFree <= '1';
-  
-  
   -- U_sys_stats: sys_stats                -- CPU reads system counters
   --   port map (cpu_reset,clk, io_sstats_sel, wr, d_addr, sstats_d_out,
   --             cnt_d_ref,cnt_d_rd_hit,cnt_d_wr_hit,cnt_d_flush,
@@ -1104,7 +1102,7 @@ begin
       when 12 => dev_sel     := std_logic_vector(to_signed(is_sdc, 4));
                  sdc_sel     <= aVal;
       when 13 => dev_sel     := std_logic_vector(to_signed(is_dma, 4));
-                 dma_sel     <= aVal;
+                 dma_sel     <= aVal or clk;
       when others => dev_sel := std_logic_vector(to_signed(is_noise, 4));
     end case;
     assert TRUE report "IO_addr "& SLV32HEX(addr);  -- DEBUG
