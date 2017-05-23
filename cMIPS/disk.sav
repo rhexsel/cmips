@@ -1,0 +1,103 @@
+[*]
+[*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
+[*] Tue May 23 17:41:58 2017
+[*]
+[dumpfile] "/home/roberto/cMIPS/cMIPS.vcd"
+[dumpfile_mtime] "Tue May 23 17:39:49 2017"
+[dumpfile_size] 2575173
+[savefile] "/home/roberto/cMIPS/disk.sav"
+[timestart] 1680400000
+[size] 1354 1018
+[pos] -1 -1
+*-26.000000 1694100000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] u_core.u_alu.
+[sst_width] 210
+[signals_width] 214
+[sst_expanded] 1
+[sst_vpaned_height] 331
+@28
+clk
+@200
+-    fetch
+@22
+u_core.pc[31:0]
+@28
+u_core.interrupt_taken
+u_core.exception_taken
+u_core.annul_twice
+u_core.nullify
+@200
+-    decode, reg fetch
+@22
+u_core.rf_instruction[31:0]
+@200
+-    exec
+@22
+u_core.alu_inp_a[31:0]
+u_core.alu_inp_b[31:0]
+u_core.result[31:0]
+u_core.v_addr[31:0]
+@200
+-   COP-0
+@24
+u_core.exccode[4:0]
+@22
+u_core.cause[31:0]
+u_core.status[31:0]
+u_core.epc[31:0]
+@200
+-    memory
+@28
+u_ram.byte_sel[3:0]
+@22
+u_ram.data_inp[31:0]
+u_ram.data_out[31:0]
+u_ram.addr[31:0]
+@28
+cpu_d_aval
+u_ram.wr
+u_ram.sel
+dma_grant
+@200
+-    write-back
+@22
+u_core.wb_cop0_val[31:0]
+@28
+u_core.wb_muxc[2:0]
+u_core.wb_wreg
+@24
+u_core.wb_a_c[4:0]
+@22
+u_core.wb_c[31:0]
+@200
+-  counter
+@28
+u_disk.s_ctrl
+@22
+u_disk.ctrl[31:0]
+@28
+u_disk.s_dst
+u_disk.s_src
+u_disk.s_stat
+@24
+u_disk.dma_curr_dbg[31:0]
+@28
+u_disk.busfree
+u_disk.busreq
+@22
+u_disk.datum[31:0]
+u_disk.dma_addr[31:0]
+@25
+u_disk.current[9:0]
+@28
+u_disk.dma_aval
+u_disk.dma_wr
+u_disk.take_bus
+u_disk.done
+@22
+u_disk.stat[31:0]
+@28
+u_disk.do_interr
+u_disk.interrupt
+[pattern_trace] 1
+[pattern_trace] 0
