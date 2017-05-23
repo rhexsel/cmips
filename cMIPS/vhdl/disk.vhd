@@ -19,8 +19,8 @@
 -- disk(0): ctrl(31)=oper[1rd, 0wr], (30)=doInterrupt,
 --          (29)=0, (28)=setIRQ, (27)=clrIRQ, (29..12)=0
 --          (11..0)=xferSize [word aligned]
--- disk(1): stat(31)=oper[1rd, 0wr], (30)=irqPending, (29)=busy
---          (28..12)=0, (11..0)=currentDMAaddress
+-- disk(1): stat(31)=oper[1rd, 0wr], (30)=irqPending, (29)=busy,
+--          (28)=interrupt pending, (27..12)=0, (11..0)=currentDMAaddress
 -- disk(2): srd [rd=disk file, wr=memory address]
 -- disk(3): dst [rd=memory address, wr=disk file]
 -- disk(4): interrupt, (1)=setIRQ, (0)=clrIRQ
@@ -90,12 +90,15 @@ architecture simulation of DISK is
   constant S_BUSY   : integer := 29;      -- controller busy=1
   constant I_SET    : integer :=  1;      -- set IRQ
   constant I_CLR    : integer :=  0;      -- clear IRQ  
+
+  constant YES : std_logic := '1';
+  constant NO  : std_logic := '0';
   
   type int_file is file of integer;
   file my_file : int_file;
 
   type dma_state is (st_init, st_idle, st_src, st_dst, st_bus, st_xfer,
-                     st_int, st_clr);
+                     st_int, st_assert, st_wait);
   attribute SYN_ENCODING of dma_state : type is "safe";
   signal dma_current_st, dma_next_st : dma_state;
   signal dma_curr_dbg, current_int, ctrl_int : integer;
@@ -105,8 +108,8 @@ architecture simulation of DISK is
   signal ctrl, src, dst, stat, datum : reg32 := (others => '0');
   signal current : reg12;
   signal base_addr : reg20;
-  signal s_intw, s_intr, set_irq, clear_irq : std_logic;
-  signal d_set_int_done, int_done : std_logic;
+  signal s_intw, s_intr, set_irq, clear_irq, s_dat : std_logic;
+  signal d_set_interrupt, interrupt, do_interr : std_logic;
   signal done : boolean;
 begin  -- functional
 
@@ -118,7 +121,9 @@ begin  -- functional
   s_dst  <= '1' when sel = '0' and addr = b"011" else '0'; -- W
   s_intw <= '1' when sel = '0' and addr = b"100" and wr = '0' else '0'; -- W
   s_intr <= '1' when sel = '0' and addr = b"100" and wr = '1' else '0'; -- R
+  s_dat  <= '1' when sel = '0' and addr = b"111" else '0'; -- W, DEBUG
 
+  
   ld_ctrl <= '0' when s_ctrl = '1' and wr = '0' else '1';  
   U_CTRL: registerN  generic map (NUM_BITS, START_VALUE)
     port map (clk, rst, ld_ctrl, data_inp, ctrl);
@@ -131,7 +136,7 @@ begin  -- functional
   U_DST:  registerN  generic map (NUM_BITS, START_VALUE)
     port map (clk, rst, ld_dst, data_inp, dst);
 
-  stat <= ctrl(C_OPER) & ctrl(C_INT) & busy & '0' & x"0000" & current;
+  stat <= ctrl(C_OPER) & ctrl(C_INT) & busy & interrupt & x"0000" & current;
   
   with addr select
     data_out <= ctrl  when "000",
@@ -140,7 +145,7 @@ begin  -- functional
                 dst   when "011",
                 x"00000000" when others;  -- interrupts
 
-  irq      <= int_done;
+  irq      <= interrupt;
   
   busReq   <= take_bus;
   
@@ -149,11 +154,11 @@ begin  -- functional
   dma_aVal <= not(take_bus);
 
   base_addr <= dst(31 downto 12) when ctrl(C_OPER) = C_OPER_RD else
-               dst(31 downto 12);
+               src(31 downto 12);
   
   dma_addr <= base_addr & current;       -- at most 4K transfers
   
-  dma_dout <= datum  when ctrl(C_OPER) = C_OPER_RD else (others => '1');
+  dma_dout <= datum  when ctrl(C_OPER) = C_OPER_RD else (others => 'X');
 
   -- dma_dinp <= data_inp when ctrl(C_OPER) = C_OPER_WR else (others => 'X');
 
@@ -166,7 +171,7 @@ begin  -- functional
 
     if rst = '1' then
 
-      if s_ctrl = '1' and falling_edge(clk) then
+      if s_ctrl = YES and falling_edge(clk) then
         if data_inp(C_OPER) = C_OPER_RD then          -- read file
           if src(0) = '0' then
             file_open(status, my_file, "DMA_0.src", read_mode);
@@ -204,13 +209,12 @@ begin  -- functional
   done <= current_int = ctrl_int;
 
   
-  clear_irq <= '0' when (s_intw = '1' and data_inp(I_CLR) = '1') else '1';
+  clear_irq <= s_intw and data_inp(I_CLR);
 
-  set_irq <= ( (ctrl(C_INT) and BOOL2SL(done)) or
-               (s_intw and data_inp(I_SET)) );
+  set_irq <= ( (ctrl(C_INT) and do_interr) or (s_intw and data_inp(I_SET)) );
   
-  d_set_int_done <= (int_done or set_irq) and clear_irq;
-  U_tx_int: FFDsimple port map (clk, rst, d_set_int_done, int_done);
+  d_set_interrupt <= set_irq or (interrupt and not(clear_irq));
+  U_tx_int: FFDsimple port map (clk, rst, d_set_interrupt, interrupt);
   
 
   -- state register---------------------------------------------------
@@ -226,7 +230,7 @@ begin  -- functional
 
   
   U_st_transitions: process(dma_current_st, clk, s_ctrl, s_src, s_dst,
-                            busFree, current, ctrl, int_done)
+                            busFree, current, ctrl, interrupt)
     variable i_datum : integer;
     variable i_addr, i_val : reg32;
   begin
@@ -278,29 +282,40 @@ begin  -- functional
                 datum <= (others => 'X');
               end if;
             else                      -- write = ctrl(C_OPER) = C_OPER_WR
-              write( my_file, to_integer(signed(dma_dinp)) );
-              assert TRUE
+              -- write( my_file, to_integer(signed(dma_dinp)) );
+              write( my_file, to_integer(signed(data_inp)) );
+              assert FALSE
                 report "DISKwr["&SLV32HEX(i_addr)&"]:"&SLV32HEX(dma_dinp);
             end if;
           end if;
 
-          if busFree = '0' then
+          if busFree = NO then
             dma_next_st <= st_bus;
           else
             dma_next_st <= st_xfer;
           end if;
           
-        else                                    -- done
+        else                            -- done
           dma_next_st <= st_int;
         end if;
 
       when st_int =>                    -- 6
-        if int_done = '1' then
-          dma_next_st <= st_int;
+        if ctrl(C_INT) = YES then       -- shall raise an interrupt?
+          dma_next_st <= st_assert;
         else
           dma_next_st <= st_idle;
         end if;
         file_close(my_file);
+
+      when st_assert =>                 -- 7
+        dma_next_st <= st_wait;
+        
+      when st_wait =>                   -- 8
+        if interrupt = YES then         -- wait for IRQ to be cleared
+          dma_next_st <= st_wait;
+        else
+          dma_next_st <= st_idle;
+        end if;
         
       when others =>                    -- ??
         dma_next_st <= st_idle;
@@ -316,18 +331,21 @@ begin  -- functional
         en_curr    <= '0';              -- do not increment address
         ld_curr    <= '0';              -- do not load address
         take_bus   <= '0';              -- leave the bus alone
-
+        do_interr  <= '0';
+        
       when st_dst =>
         busy       <= '1';              -- busy
         en_curr    <= '0';              -- do not increment address
         ld_curr    <= '1';              -- load address
         take_bus   <= '0';              -- leave the bus alone
-
+        do_interr  <= '0';
+        
       when st_bus =>
         busy       <= '1';              -- busy
         en_curr    <= '0';              -- do not increment address
         ld_curr    <= '0';              -- do not load address
         take_bus   <= '0';              -- leave the bus alone
+        do_interr  <= '0';
 
       when st_xfer =>
         busy       <= '1';              -- busy
@@ -338,18 +356,35 @@ begin  -- functional
         end if;
         ld_curr    <= '0';              -- do not load address
         take_bus   <= '1';              -- leave the bus alone
+        do_interr  <= '0';
         
       when st_int =>
-        busy       <= '1';              -- busy
-        en_curr    <= '0';              -- increment address
-        ld_curr    <= '0';              -- do not load address
-        take_bus   <= '0';              -- leave the bus alone
-        
-      when others =>
-        busy       <= '1';              -- busy
+        busy       <= '0';              -- busy
         en_curr    <= '0';              -- do not increment address
         ld_curr    <= '0';              -- do not load address
         take_bus   <= '0';              -- leave the bus alone
+        do_interr  <= '0';
+
+      when st_assert =>
+        busy       <= '0';              -- busy
+        en_curr    <= '0';              -- increment address
+        ld_curr    <= '0';              -- do not load address
+        take_bus   <= '0';              -- leave the bus alone
+        do_interr  <= '1';              -- raise interrupt request
+
+      when st_wait =>
+        busy       <= '0';              -- busy
+        en_curr    <= '0';              -- increment address
+        ld_curr    <= '0';              -- do not load address
+        take_bus   <= '0';              -- leave the bus alone
+        do_interr  <= '0';
+        
+      when others =>
+        busy       <= '0';              -- busy
+        en_curr    <= '0';              -- do not increment address
+        ld_curr    <= '0';              -- do not load address
+        take_bus   <= '0';              -- leave the bus alone
+        do_interr  <= '0';
     end case;
   end process U_st_outputs; -- -----------------------------------
 
