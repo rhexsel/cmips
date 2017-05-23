@@ -666,9 +666,11 @@ begin  -- TB
   -- U_RAM: RAM generic map ("data.bin", "dump.data")
   --   port map (rst, clk, mem_d_sel, ram_rdy, mem_wr, phi2,
   --             mem_addr, datram_out, datram_inp, mem_xfer, dump_ram);
-  
+
+  -- busReq <= '0';  
   U_DISK: DISK
-    port map  (rst,clk, io_dma_sel,  open, wr, busFree, busReq,
+    port map  (rst,clk, io_dma_sel,  open, wr, -- '1', open,
+               busFree, busReq,
                d_addr(4 downto 2), cpu_data, dma_d_out, dma_irq,
                dma_addr, datram_inp, dma_dout, dma_wr, dma_aval, dma_type);
 

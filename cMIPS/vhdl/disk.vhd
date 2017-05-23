@@ -17,8 +17,8 @@
 
 
 -- disk(0): ctrl(31)=oper[1rd, 0wr], (30)=doInterrupt,
---          (29)=0, (28)=setIRQ, (27)=clrIRQ, (29..12)=0
---          (11..0)=xferSize [word aligned]
+--          (29)=0, (28)=setIRQ, (27)=clrIRQ, (29..10)=0
+--          (9..0)=transferSize in words, aligned
 -- disk(1): stat(31)=oper[1rd, 0wr], (30)=irqPending, (29)=busy,
 --          (28)=interrupt pending, (27..12)=0, (11..0)=currentDMAaddress
 -- disk(2): srd [rd=disk file, wr=memory address]
@@ -101,16 +101,16 @@ architecture simulation of DISK is
                      st_int, st_assert, st_wait);
   attribute SYN_ENCODING of dma_state : type is "safe";
   signal dma_current_st, dma_next_st : dma_state;
-  signal dma_curr_dbg, current_int, ctrl_int : integer;
+  signal dma_curr_dbg, current_int, ctrl_int  : integer;
   
   signal ld_ctrl, s_ctrl, s_stat, ld_src, s_src, ld_dst, s_dst : std_logic;
   signal busy, take_bus, ld_curr, rst_curr, en_curr : std_logic;
   signal ctrl, src, dst, stat, datum : reg32 := (others => '0');
-  signal current : reg12;
+  signal current : reg10;
   signal base_addr, curr_addr : reg32;
   signal s_intw, s_intr, set_irq, clear_irq, s_dat : std_logic;
   signal d_set_interrupt, interrupt, do_interr : std_logic;
-  signal done : boolean;
+  signal done, last_one : boolean;
 begin  -- functional
 
   rdy <= '0';                           -- simulation only, never waits
@@ -136,7 +136,9 @@ begin  -- functional
   U_DST:  registerN  generic map (NUM_BITS, START_VALUE)
     port map (clk, rst, ld_dst, data_inp, dst);
 
-  stat <= ctrl(C_OPER) & ctrl(C_INT) & busy & interrupt & x"0000" & current;
+  stat <= ctrl(C_OPER) & ctrl(C_INT) & busy & interrupt &
+          x"0000" & current & b"00";
+
   
   with addr select
     data_out <= ctrl  when "000",
@@ -150,12 +152,12 @@ begin  -- functional
   busReq   <= take_bus;
   
   dma_type <= b"1111";                  -- always transfers words
-  dma_wr   <= not(ctrl(C_OPER)) or not(take_bus);
+  dma_wr   <= not(ctrl(C_OPER)) or not(take_bus);  -- write to RAM
   dma_aVal <= not(take_bus);
 
   base_addr <= dst when ctrl(C_OPER) = C_OPER_RD else src;
 
-  curr_addr <= x"0000" & b"00" & current & b"00";  -- word aligned
+  curr_addr <= x"0000" & b"0000" & current & b"00";  -- word aligned
   dma_addr <= std_logic_vector( signed(base_addr) + signed(curr_addr) );
   
   dma_dout <= datum  when ctrl(C_OPER) = C_OPER_RD else (others => 'X');
@@ -163,6 +165,19 @@ begin  -- functional
   -- dma_dinp <= data_inp when ctrl(C_OPER) = C_OPER_WR else (others => 'X');
 
 
+  rst_curr <= not(ld_curr) and rst;
+  U_CURRENT: countNup generic map (10)
+    port map (clk, rst_curr, '0', en_curr, ctrl(9 downto 0), current);
+
+  done <= current = (ctrl(9 downto 0));
+
+  current_int <= to_integer(signed(current));
+  ctrl_int    <= to_integer(signed(ctrl(9 downto 0)));
+
+  last_one <= (current_int = (ctrl_int - 1));
+
+
+  
   -- control file operations -----------------------------------------
   U_FILE_CTRL: process(rst, clk, s_ctrl)
     variable status : file_open_status := open_ok;
@@ -198,17 +213,6 @@ begin  -- functional
     end if; -- reset
     
   end process U_FILE_CTRL; -------------------------------------------
-
-  rst_curr <= not(ld_curr) and rst;
-  U_CURRENT: countNup generic map (12)
-    port map (clk, rst_curr, '0', en_curr, ctrl(11 downto 0), current);
-
-  
-  current_int <= to_integer(signed(current));
-  ctrl_int    <= to_integer(signed(ctrl(11 downto 0)));
-                            
-  done <= current_int = ctrl_int;
-
 
   
   clear_irq <= s_intw and data_inp(I_CLR);
@@ -271,7 +275,7 @@ begin  -- functional
       when st_xfer =>                   -- 5
         if not(done) then               -- not done
 
-          i_addr := x"00000" & current;
+          i_addr := x"00000" & current & b"00";
           if falling_edge(clk) then
             if ctrl(C_OPER) = C_OPER_RD then  -- read
               if not(endfile(my_file)) then
@@ -284,8 +288,8 @@ begin  -- functional
                 datum <= (others => 'X');
               end if;
             else                      -- write = ctrl(C_OPER) = C_OPER_WR
-              -- write( my_file, to_integer(signed(dma_dinp)) );
-              write( my_file, to_integer(signed(data_inp)) );
+              write( my_file, to_integer(signed(dma_dinp)) );
+              -- write( my_file, to_integer(signed(data_inp)) );
               assert FALSE
                 report "DISKwr["&SLV32HEX(i_addr)&"]:"&SLV32HEX(dma_dinp);
             end if;
@@ -325,72 +329,70 @@ begin  -- functional
   end process U_st_transitions; -- -----------------------------------
 
 
-  U_st_outputs: process(dma_current_st, done)
+  U_st_outputs: process(dma_current_st, last_one)
   begin
     case dma_current_st is
       when st_init | st_idle | st_src =>
-        busy       <= '0';              -- not busy
-        en_curr    <= '0';              -- do not increment address
-        ld_curr    <= '0';              -- do not load address
-        take_bus   <= '0';              -- leave the bus alone
-        do_interr  <= '0';
+        busy       <= NO;               -- free
+        en_curr    <= NO;               -- do not increment address
+        ld_curr    <= NO;               -- do not load address
+        take_bus   <= NO;               -- leave the bus alone
+        do_interr  <= NO; 
         
       when st_dst =>
-        busy       <= '1';              -- busy
-        en_curr    <= '0';              -- do not increment address
-        ld_curr    <= '1';              -- load address
-        take_bus   <= '0';              -- leave the bus alone
-        do_interr  <= '0';
+        busy       <= YES;              -- busy
+        en_curr    <= NO;               -- do not increment address
+        ld_curr    <= YES;              -- load address
+        take_bus   <= NO;               -- leave the bus alone
+        do_interr  <= NO; 
         
       when st_bus =>
-        busy       <= '1';              -- busy
-        en_curr    <= '0';              -- do not increment address
-        ld_curr    <= '0';              -- do not load address
-        take_bus   <= '0';              -- leave the bus alone
-        do_interr  <= '0';
+        busy       <= YES;              -- busy
+        en_curr    <= NO;               -- do not increment address
+        ld_curr    <= NO;               -- do not load address
+        take_bus   <= NO;               -- leave the bus alone
+        do_interr  <= NO; 
 
       when st_xfer =>
-        busy       <= '1';              -- busy
+        busy       <= YES;              -- busy
+        en_curr    <= YES;              -- increment address          
         if not(done) then
-          en_curr    <= '1';            -- increment address          
+          take_bus <= YES;              -- request bus
         else
-          en_curr    <= '0';            -- stop incrementing address          
-        end if;
-        ld_curr    <= '0';              -- do not load address
-        take_bus   <= '1';              -- leave the bus alone
-        do_interr  <= '0';
+          take_bus <= NO;
+         end if;
+        ld_curr    <= NO;               -- do not load address
+        do_interr  <= NO; 
         
       when st_int =>
-        busy       <= '0';              -- busy
-        en_curr    <= '0';              -- do not increment address
-        ld_curr    <= '0';              -- do not load address
-        take_bus   <= '0';              -- leave the bus alone
-        do_interr  <= '0';
+        busy       <= NO;               -- free
+        en_curr    <= NO;               -- do not increment address
+        ld_curr    <= NO;               -- do not load address
+        take_bus   <= NO;               -- leave the bus alone
+        do_interr  <= NO; 
 
       when st_assert =>
-        busy       <= '0';              -- busy
-        en_curr    <= '0';              -- increment address
-        ld_curr    <= '0';              -- do not load address
-        take_bus   <= '0';              -- leave the bus alone
-        do_interr  <= '1';              -- raise interrupt request
+        busy       <= NO;               -- free
+        en_curr    <= NO;               -- increment address
+        ld_curr    <= NO;               -- do not load address
+        take_bus   <= NO;               -- leave the bus alone
+        do_interr  <= YES;              -- raise interrupt request
 
       when st_wait =>
-        busy       <= '0';              -- busy
-        en_curr    <= '0';              -- increment address
-        ld_curr    <= '0';              -- do not load address
-        take_bus   <= '0';              -- leave the bus alone
-        do_interr  <= '0';
+        busy       <= NO;               -- free
+        en_curr    <= NO;               -- increment address
+        ld_curr    <= NO;               -- do not load address
+        take_bus   <= NO;               -- leave the bus alone
+        do_interr  <= NO; 
         
       when others =>
-        busy       <= '0';              -- busy
-        en_curr    <= '0';              -- do not increment address
-        ld_curr    <= '0';              -- do not load address
-        take_bus   <= '0';              -- leave the bus alone
-        do_interr  <= '0';
+        busy       <= NO;               -- free
+        en_curr    <= NO;               -- do not increment address
+        ld_curr    <= NO;               -- do not load address
+        take_bus   <= NO;               -- leave the bus alone
+        do_interr  <= NO; 
     end case;
   end process U_st_outputs; -- -----------------------------------
-
- 
   
   
 end architecture simulation;
@@ -414,164 +416,6 @@ begin
   dma_type <= (others => 'X');
 end architecture fake;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-
-
-
-
-
-
-
-
-
---x 
---x       index := 0;                 -- byte indexed
---x 
---x       for i in 0 to (DATA_MEM_SZ - 1)  loop
---x 
---x         if not endfile(load_file) then
---x 
---x           read(load_file, datum);
---x           s_datum := to_signed(datum, 32);
---x           assert TRUE report "ramINIT["& natural'image(index*4)&"]= " &
---x             SLV32HEX(std_logic_vector(s_datum)); -- DEBUG
---x           storage(index+3) <= std_logic_vector(s_datum(31 downto 24));
---x           storage(index+2) <= std_logic_vector(s_datum(23 downto 16));
---x           storage(index+1) <= std_logic_vector(s_datum(15 downto  8));
---x           storage(index+0) <= std_logic_vector(s_datum(7  downto  0));
---x           index := index + 4;
---x         end if;
---x       end loop;
---x 
---x 
---x 
---x 
---x 
---x -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
---x -- syncronous RAM; initialization Data loaded at CPU reset, byte-indexed
---x -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
---x architecture simulation of RAM is
---x 
---x   
---x 
---x   signal enable, waiting, do_wait : std_logic;
---x   
---x begin  -- simulation
---x 
---x   
---x   accessRAM: process(strobe,enable, wr,rst, addr,byte_sel, data_inp,dump_ram)
---x     variable u_addr : t_address;
---x     variable index, latched : natural;
---x 
---x     type binary_file is file of integer;
---x     file load_file: binary_file open read_mode is LOAD_FILE_NAME;
---x     variable datum: integer;
---x     variable s_datum: signed(31 downto 0);
---x 
---x     file dump_file: binary_file open write_mode is DUMP_FILE_NAME;
---x     
---x     variable d : reg32 := (others => 'X');
---x     variable val, i : integer;
---x 
---x   begin
---x 
---x     if rst = '0' then             -- reset, read-in binary initialized data
---x       data_out <= (others=>'X');
---x       
---x     else  -- (rst = '1'), normal operation
---x 
---x       u_addr := unsigned(addr( (DATA_ADDRS_BITS-1) downto 0 ) );
---x       index  := to_integer(u_addr);
---x 
---x       if sel  = '0' and wr = '0' and rising_edge(strobe) then
---x         
---x         assert (index >= 0) and (index < DATA_MEM_SZ)
---x           report "ramWR index out of bounds: " & natural'image(index)
---x           severity failure;
---x 
---x         case byte_sel is
---x           when b"1111"  =>                              -- SW
---x             storage(index+3) <= data_inp(31 downto 24);
---x             storage(index+2) <= data_inp(23 downto 16);
---x             storage(index+1) <= data_inp(15 downto  8);
---x             storage(index+0) <= data_inp(7  downto  0);
---x           when b"1100" | b"0011" =>                     -- SH
---x             storage(index+1) <= data_inp(15 downto 8);
---x             storage(index+0) <= data_inp(7  downto 0);
---x           when b"0001" | b"0010" | b"0100" | b"1000" => -- SB
---x             storage(index+0) <= data_inp(7 downto 0);
---x           when others => null;
---x         end case;
---x         assert TRUE report "ramWR["& natural'image(index) &"] "
---x           & SLV32HEX(data_inp) &" bySel=" & SLV2STR(byte_sel); -- DEBUG
---x       end if; -- is write?
---x 
---x       if sel = '0' and wr = '1' then
---x 
---x         assert (index >= 0) and (index < DATA_MEM_SZ)
---x           report "ramRD index out of bounds: " & natural'image(index)
---x           severity failure;
---x 
---x         case byte_sel is
---x           when b"1111"  =>                              -- LW
---x             d(31 downto 24) := storage(index+3);
---x             d(23 downto 16) := storage(index+2);
---x             d(15 downto  8) := storage(index+1);
---x             d(7  downto  0) := storage(index+0);
---x           when b"1100" =>                               -- LH top-half
---x             d(31 downto 24) := storage(index+1);
---x             d(23 downto 16) := storage(index+0);
---x             d(15 downto  0) := (others => 'X');
---x           when b"0011" =>                               -- LH bottom-half
---x             d(31 downto 16) := (others => 'X');
---x             d(15 downto  8) := storage(index+1);
---x             d(7  downto  0) := storage(index+0);
---x           when b"0001" =>                               -- LB top byte
---x             d(31 downto  8) := (others => 'X');
---x             d(7  downto  0) := storage(index+0);
---x           when b"0010" =>                               -- LB mid-top byte
---x             d(31 downto 16) := (others => 'X');
---x             d(15 downto  8) := storage(index+0);
---x             d(7  downto  0) := (others => 'X');
---x           when b"0100" =>                               -- LB mid-bot byte
---x             d(31 downto 24) := (others => 'X');
---x             d(23 downto 16) := storage(index+0);
---x             d(15 downto  0) := (others => 'X');
---x           when b"1000" =>                               -- LB bottom byte
---x             d(31 downto 24) := storage(index+0);
---x             d(23 downto  0) := (others => 'X');
---x           when others => d  := (others => 'X');
---x         end case;
---x         assert TRUE report "ramRD["& natural'image(index) &"] "
---x           & SLV32HEX(d) &" bySel="& SLV2STR(byte_sel);  -- DEBUG
---x 
---x       elsif rising_edge(dump_ram) then
---x         
---x         i := 0;
---x         while i < DATA_MEM_SZ-4 loop
---x           d(31 downto 24) := storage(i+3);
---x           d(23 downto 16) := storage(i+2);
---x           d(15 downto  8) := storage(i+1);
---x           d(7  downto  0) := storage(i+0);
---x           write( dump_file, to_integer(signed(d)) );
---x           i := i+4;
---x         end loop;  -- i
---x 
---x       else
---x         d := (others=>'X');
---x       end if; -- is read?
---x 
---x       data_out <= d;  
---x 
---x     end if; -- is reset?
---x     
---x   end process accessRAM; -- ---------------------------------------------
---x 
---x 
---x end architecture simulation;
---x -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
---x
 
 
 
