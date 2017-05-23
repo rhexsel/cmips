@@ -21,7 +21,7 @@
 --          (9..0)=transferSize in words, aligned
 -- disk(1): stat(31)=oper[1rd, 0wr], (30)=irqPending, (29)=busy,
 --          (28)=interrupt pending, (27..12)=0, (11..0)=currentDMAaddress
--- disk(2): srd [rd=disk file, wr=memory address]
+-- disk(2): src [rd=disk file, wr=memory address]
 -- disk(3): dst [rd=memory address, wr=disk file]
 -- disk(4): interrupt, (1)=setIRQ, (0)=clrIRQ
 
@@ -91,9 +91,7 @@ architecture simulation of DISK is
   constant I_SET    : integer :=  1;      -- set IRQ
   constant I_CLR    : integer :=  0;      -- clear IRQ  
 
-  constant YES : std_logic := '1';
-  constant NO  : std_logic := '0';
-  
+
   type int_file is file of integer;
   file my_file : int_file;
 
@@ -113,7 +111,7 @@ architecture simulation of DISK is
   signal done, last_one : boolean;
 begin  -- functional
 
-  rdy <= '0';                           -- simulation only, never waits
+  rdy <= ZERO;                           -- simulation only, never waits
 
   s_ctrl <= '1' when sel = '0' and addr = b"000" else '0'; -- R+W
   s_stat <= '1' when sel = '0' and addr = b"001" else '0'; -- R+W
@@ -151,7 +149,7 @@ begin  -- functional
   
   busReq   <= take_bus;
   
-  dma_type <= b"1111";                  -- always transfers words
+  dma_type <= b"1111";                   -- always transfers words
   dma_wr   <= not(ctrl(C_OPER)) or not(take_bus);  -- write to RAM
   dma_aVal <= not(take_bus);
 
@@ -160,16 +158,14 @@ begin  -- functional
   curr_addr <= x"0000" & b"0000" & current & b"00";  -- word aligned
   dma_addr <= std_logic_vector( signed(base_addr) + signed(curr_addr) );
   
-  dma_dout <= datum  when ctrl(C_OPER) = C_OPER_RD else (others => 'X');
-
-  -- dma_dinp <= data_inp when ctrl(C_OPER) = C_OPER_WR else (others => 'X');
+  dma_dout <= datum when ctrl(C_OPER) = C_OPER_RD else (others => 'X');
 
 
   rst_curr <= not(ld_curr) and rst;
   U_CURRENT: countNup generic map (10)
     port map (clk, rst_curr, '0', en_curr, ctrl(9 downto 0), current);
 
-  done <= current = (ctrl(9 downto 0));
+  done <= ( current = (ctrl(9 downto 0)) );
 
   current_int <= to_integer(signed(current));
   ctrl_int    <= to_integer(signed(ctrl(9 downto 0)));
@@ -178,7 +174,7 @@ begin  -- functional
 
 
   
-  -- control file operations -----------------------------------------
+  -- file operations -------------------------------------------------
   U_FILE_CTRL: process(rst, clk, s_ctrl)
     variable status : file_open_status := open_ok;
     variable i_status : integer := 0;
@@ -187,28 +183,28 @@ begin  -- functional
     if rst = '1' then
 
       if s_ctrl = YES and falling_edge(clk) then
-        if data_inp(C_OPER) = C_OPER_RD then          -- read file
+        if data_inp(C_OPER) = C_OPER_RD then            -- read file
           if src(0) = '0' then
             file_open(status, my_file, "DMA_0.src", read_mode);
           else 
             file_open(status, my_file, "DMA_1.src", read_mode);
           end if;
           i_status := file_open_status'pos(status);
-          assert FALSE
-            report "fileRDopen["&SLV32HEX(ctrl)&"]:"&SLV32HEX(src)&" "&
+          assert TRUE
+            report "fileRDopen["&SLV32HEX(ctrl)&"]."&SLV32HEX(src)&" "&
                    natural'image(i_status);
-        else                                --  write file
+        else                                            --  write file
           if dst(0) = '0' then
             file_open(status, my_file, "DMA_0.dst", write_mode);
           else 
             file_open(status, my_file, "DMA_1.dst", write_mode);
           end if;
           i_status := file_open_status'pos(status);
-          assert FALSE
-            report "fileWRopen["&SLV32HEX(ctrl)&"]:"&SLV32HEX(dst)&" "&
+          assert TRUE
+            report "fileWRopen["&SLV32HEX(ctrl)&"]."&SLV32HEX(dst)&" "&
                    natural'image(i_status);
         end if;
-      end if;   
+      end if;
 
     end if; -- reset
     
@@ -226,7 +222,7 @@ begin  -- functional
   -- state register---------------------------------------------------
   U_st_reg: process(rst,clk)
   begin
-    if rst = '0' then
+    if rst = ZERO then
       dma_current_st <= st_init;
     elsif rising_edge(clk) then
       dma_current_st <= dma_next_st;
@@ -266,7 +262,7 @@ begin  -- functional
         end if;
 
       when st_bus =>                    -- 4
-        if busFree = '0' then
+        if busFree = NO then
           dma_next_st <= st_bus;
         else
           dma_next_st <= st_xfer;
@@ -282,16 +278,15 @@ begin  -- functional
                 read( my_file, i_datum );
                 datum <= std_logic_vector(to_signed(i_datum, 32));
                 i_val := std_logic_vector(to_signed(i_datum, 32));
-                assert FALSE
-                  report "DISKrd["&SLV32HEX(i_addr)&"]:"&SLV32HEX(i_val);
+                assert TRUE
+                  report "DISKrd["&SLV32HEX(i_addr)&"]="&SLV32HEX(i_val);
               else
                 datum <= (others => 'X');
               end if;
             else                      -- write = ctrl(C_OPER) = C_OPER_WR
               write( my_file, to_integer(signed(dma_dinp)) );
-              -- write( my_file, to_integer(signed(data_inp)) );
-              assert FALSE
-                report "DISKwr["&SLV32HEX(i_addr)&"]:"&SLV32HEX(dma_dinp);
+              assert TRUE
+                report "DISKwr["&SLV32HEX(i_addr)&"]="&SLV32HEX(dma_dinp);
             end if;
           end if;
 
@@ -406,8 +401,8 @@ end architecture simulation;
 architecture fake of DISK is
 begin
   rdy      <= 'X';
-  busReq   <= '0';
-  irq      <= '0';
+  busReq   <= NO;
+  irq      <= NO;
   data_out <= (others => 'X');
   dma_addr <= (others => 'X');
   dma_dout <= (others => 'X');

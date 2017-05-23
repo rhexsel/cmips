@@ -580,13 +580,14 @@ begin  -- TB
 
   not_waiting <= (inst_wait and data_wait and sdram_wait); --  and io_wait);
 
-  -- Count=Compare at IRQ7, UART at IRQ6, extCounter at IRQ5, DMA at IRQ4
-  -- C=C U E D 0 0 sw1 sw0
-  -- uart+counter+dma_ctrl interrupts
-  irq <= '0' & uart_irq & counter_irq & dma_irq & b"00";
-  -- irq <= b"00" & counter_irq & b"000"; -- counter interrupts
+  -- Count=Compare at IRQ7, UART at IRQ6, DMA at IRQ5, extCounter at IRQ4,
+  -- C=C U D E 0 0 sw1 sw0
+  -- uart+dma_disk+counter interrupts
+
+  irq <= ZERO & uart_irq & dma_irq & counter_irq & ZERO & ZERO;
+
   -- irq <= b"000000"; -- NO interrupt requests
-  nmi <= '0'; -- input port to TB
+  nmi <= NO; -- input port to TB
 
   U_CORE: core
     port map (cpu_reset, clk, phi1,phi2,phi3,
@@ -652,16 +653,15 @@ begin  -- TB
 
   dma_grant <= busFree_dly and busReq;
     
-  ram_xfer <= dma_type when dma_grant = '1' else mem_xfer;
-  ram_addr <= dma_addr when dma_grant = '1' else mem_addr;
-  ram_wr   <= dma_wr   when dma_grant = '1' else mem_wr;
-  ram_sel  <= '0'      when dma_grant = '1' else mem_d_sel;
-  ram_inp  <= dma_dout when dma_grant = '1' else datram_out;
+  ram_xfer <= dma_type when dma_grant = YES else mem_xfer;
+  ram_addr <= dma_addr when dma_grant = YES else mem_addr;
+  ram_wr   <= dma_wr   when dma_grant = YES else mem_wr;
+  ram_sel  <= '0'      when dma_grant = YES else mem_d_sel;
+  ram_inp  <= dma_dout when dma_grant = YES else datram_out;
   
   U_RAM: RAM generic map ("data.bin", "dump.data")
     port map (rst, clk, ram_sel, ram_rdy, ram_wr, phi3,
               ram_addr, ram_inp, datram_inp, ram_xfer, dump_ram);
-
 
   -- U_RAM: RAM generic map ("data.bin", "dump.data")
   --   port map (rst, clk, mem_d_sel, ram_rdy, mem_wr, phi2,

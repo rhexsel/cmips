@@ -85,6 +85,9 @@ _excp_180:        wait 0x03
 	#
 	# interrupt handler =============================================
 	#
+	.set HIprio, 0x8000	# IRQ-7
+	.set LOprio, 0x1000	# IRQ-4
+
 	.org x_EXCEPTION_0200,0
 _excp_200:
         nop			# wait a looong time to ensure both
@@ -109,9 +112,9 @@ _excp_200:
 	nop
 	nop # sw    $k0, 0($15)      	# print it
 
-	andi  $k1, $k0, 0x8000  # is hi_priority active?
+	andi  $k1, $k0, HIprio  # is hi_priority active?
 
-	beq   $k1, $zero, lo_pri # YES, handle it
+	beq   $k1, $zero, lo_pri # NO, handle low priority
 	nop
 
 hi_pri:	mtc0  $zero, c0_compare # remove IRQ
@@ -188,7 +191,7 @@ main:	la    $15, x_IO_BASE_ADDR
 	ori   $5, $5, (numCy-4)  	# interrupt in numCy cycles
 	lui   $6, %hi(HW_counter_addr)	#   AFTER Count=Compare interrupt
 	ori   $6, $6, %lo(HW_counter_addr)
-	sw    $5, 0($6)		# restart external counter
+	sw    $5, 0($6)			# restart external counter
 
 	nop
 

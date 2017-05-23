@@ -13,6 +13,7 @@
 
 #if FOR_SIMULATION
 
+
 //=======================================================================
 // simulator's STD_INPUT and STD_OUTPUT
 //=======================================================================
@@ -78,6 +79,52 @@ void dumpRAM(void) {
 
   *(IO + 7) = 1;
 }; //--------------------------------------------------------------------
+
+
+
+//=======================================================================
+// simulator's disk-DMA device
+//=======================================================================
+
+#define C_READ  0x80000000
+#define C_WRITE 0x00000000
+#define C_INTER 0x40000000
+
+#define D_CTRL   0
+#define D_STAT   1
+#define D_SRC    2
+#define D_DST    3
+#define D_INTERR 4
+
+// read numWds from file DMA_{0,1}.src and write to address dst
+//   if do_interrupt = TRUE, generate an interrupt at end of transfer
+// return value of control word sent do DMA controller
+int file2mem(int numWds, int src, int* dst, int do_interrupt) {
+  int ctrl, int_req;
+  volatile int *IO = (int *)IO_DMA_ADDR;
+
+  int_req      = (do_interrupt ? C_INTER : 0);
+  ctrl         = C_READ | (numWds & 0x03ff) | int_req;
+  *(IO+D_CTRL) = ctrl;
+  *(IO+D_SRC)  = src & 0x01;   // read from file DMA_{0,1}.src 
+  *(IO+D_DST)  = (int)dst;     // and write to memory
+  return ctrl;
+}
+
+// read numWds from address src and write them to file DMA_{0,1}.dst
+//   if do_interrupt = TRUE, generate an interrupt at end of transfer
+// return value of control word sent do DMA controller
+int mem2file(int numWds, int *src, int dst, int do_interrupt) {
+  int ctrl, int_req;
+  volatile int *IO = (int *)IO_DMA_ADDR;
+
+  int_req      = (do_interrupt ? C_INTER : 0);
+  ctrl         = C_WRITE | (numWds & 0x03ff) | int_req;
+  *(IO+D_CTRL) = ctrl;
+  *(IO+D_SRC)  = (int)src;     // read from memory
+  *(IO+D_DST)  = dst & 0x01;   // and write to file DMA_{0,1}.src 
+  return ctrl;
+}
 
 
 //=======================================================================

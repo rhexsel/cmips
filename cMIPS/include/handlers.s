@@ -8,7 +8,7 @@
 	.set M_StatusIEn,0x0000ff11     # STATUS.intEn=1, user mode, EXL=0
 
 	#================================================================
-	# interrupt handler for external counter attached to IP5=HW3
+	# interrupt handler for external counter attached to IP4=HW2
 	# for extCounter address see vhdl/packageMemory.vhd
 	#
 	.bss
@@ -158,6 +158,69 @@ UARTret:
 
 	eret			    # Return from interrupt
 	.end UARTinterr
+	#----------------------------------------------------------------
+
+
+
+	#================================================================
+	# interrupt handler for DMA controller attached to IP5=HW3
+	# for DMA-disk controller address see vhdl/packageMemory.vhd
+	#
+	.bss
+	.align  2
+	.global _dma_status
+_dma_status: .space 2*4		# 2 words to share with DMA-disk driver
+_dma_saves:  .space 4*4		# area to save up to 4 registers
+	# _dma_saves[0]=$a0, [1]=$a1, [2]=$a2, [3]=$a3
+
+	.set D_clr_irq, 0x0001
+
+	.equ D_FLAG, 0	# DMAinterr flag, done=1
+	.equ D_LAST, 4 	# DMA device status post interrupt
+	
+	.equ DCTRL,  0	# DMAcontroller registers' displacement from base
+	.equ DSTAT,  4
+	.equ DSRC,   8
+	.equ DDST,  12
+	.equ DINTER,16
+
+	.text
+	.set    noreorder
+	.global DMAinterr
+	.ent    DMAinterr
+
+DMAinterr:
+	lui   $k0, %hi(HW_dma_addr)
+	ori   $k0, $k0, %lo(HW_dma_addr)
+	addiu $k1, $zero, 1 		# Clear interrupt request
+	sw    $k1, DINTER($k0)
+	
+	#----------------------------------
+	# if you change this handler, then save additional registers
+	# lui $k1, %hi(_dma_saves)
+	# ori $k1, $k1, %lo(_dma_saves)
+	# sw  $a0, 0*4($k1)
+	# sw  $a1, 1*4($k1)
+	#----------------------------------
+
+	lw    $k1, DSTAT($k0)
+
+	lui   $k0, %hi(_dma_status)
+	ori   $k0, $k0, %lo(_dma_status)
+	sw    $k1, D_LAST($k0)		# Save DMA's last status
+	addiu $k1, $zero, 1		#
+	sw    $k1, D_FLAG($k0)		# Set done flag
+
+	#----------------------------------
+	# if you changed this handler, then restore those same registers
+	# lui $k1, %hi(_dma_saves)
+	# ori $k1, $k1, %lo(_dma_saves)
+	# lw  $a0, 0*4($k1)
+	# lw  $a1, 1*4($k1)
+	#----------------------------------
+	
+	eret			    # Return from interrupt
+	.end DMAinterr
 	#----------------------------------------------------------------
 
 	

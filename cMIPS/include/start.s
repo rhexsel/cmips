@@ -8,7 +8,6 @@
 	.align 2
 	.extern main
 	.global _start,_exit,exit
-	.global _excp_0000, _excp_0100, _excp_0180, _excp_0200, _excp_BFC0
 	
 	.org x_INST_BASE_ADDR,0
 	.ent _start
@@ -202,7 +201,7 @@ _excp_0100:
 	## area to save up to 16 registers
         .bss
         .align  2
-	.global _excp_saves, _excp_0180ret
+	.global _excp_0180ret
         .comm   _excp_saves 16*4
         # _excp_saves[0]=CAUSE, [1]=STATUS, [2]=ASID,
 	#            [8]=$ra, [9]=$a0, [10]=$a1, [11]=$a2, [12]=$a3
@@ -210,8 +209,6 @@ _excp_0100:
         .text
         .set noreorder
 	.set noat
-	.global _excp_0180ret
-	.global handle_Mod, handle_TLBL, handle_TLBS
 	
 	.org x_EXCEPTION_0180,0  # exception vector_180
 	.ent _excp_0180
@@ -297,9 +294,10 @@ _excp_0180ret:
 	# declare all handlers here, these must be in file handlers.s
 	.extern countCompare  # IRQ7 = hwIRQ5, Cop0 counter
 	.extern UARTinterr    # IRQ6 - hwIRQ4, see vhdl/tb_cMIPS.vhd
-	.extern extCounter    # IRQ5 - hwIRQ3, see vhdl/tb_cMIPS.vhd
+	.extern DMAinterr     # IRQ5 - hwIRQ3, see vhdl/tb_cMIPS.vhd
+	.extern extCounter    # IRQ4 - hwIRQ2, see vhdl/tb_cMIPS.vhd
 
-	.set M_CauseIM,0x0000ff00   # keep bits 15..8 -> IM = IP
+	.set M_CauseIM,0xff00       # keep bits 15..8 -> IM = IP
 	.set M_StatusIEn,0xff11     # user mode, enable all interrupts, EXL=0
 
 	.set noreorder
@@ -310,8 +308,8 @@ _excp_0200:
 	mfc0 $k0, c0_cause
 	mfc0 $k1, c0_status
 	andi $k0, $k0, M_CauseIM   # Keep only IP bits from Cause
-	and  $k0, $k0, $k1         # and mask with IM bits 
-	srl  $k0, $k0, 10	   # keep only 3 MS bits of IP (irq7..5)
+	and  $k0, $k0, $k1         #   and mask with IM bits
+	srl  $k0, $k0, 9	   # Keep only 4 MS bits of IP (irq7..4)
 	lui  $k1, %hi(handlers_tbl) # plus displacement in j-table of 8 bytes
 	ori  $k1, $k1, %lo(handlers_tbl)
 	add  $k1, $k1, $k0
@@ -319,39 +317,49 @@ _excp_0200:
 	jr   $k1
 	nop
 
-
-	## the code for each handler must contain an exception return
-	##   such as the sequence shown below, in excp_0200ret.
+	## the code for each handler must contain an exception return (eret)
 handlers_tbl:
-	j dismiss		   # no request: 000
-	nop
+        j dismiss                  # no request: 000
+        nop
 
-	j extCounter		   # lowest priority, IRQ5: 001
-	nop	
+        j extCounter               # lowest priority, IRQ4: 0001
+        nop
 
-	j UARTinterr		   # mid priority, IRQ6: 01x
-	nop
-	j UARTinterr
-	nop
+        j DMAinterr                # mid priority, IRQ5: 001x
+        nop
+        j DMAinterr
+        nop
+	
+        j UARTinterr               # mid priority, IRQ6: 01xx
+        nop
+        j UARTinterr
+        nop
+        j UARTinterr
+        nop
+        j UARTinterr
+        nop
 
-	j countCompare             # highest priority, IRQ7: 1xx
-	nop
-	j countCompare
-	nop
-	j countCompare
-	nop
-	j countCompare
-	nop
-
-
+        j countCompare             # highest priority, IRQ7: 1xxx
+        nop
+        j countCompare
+        nop
+        j countCompare
+        nop
+        j countCompare
+        nop
+        j countCompare
+        nop
+        j countCompare
+        nop
+        j countCompare
+        nop
+        j countCompare
+        nop
+	
 dismiss: # No pending request, must have been noise
 	 #  do nothing and return
 
 _excp_0200ret:
-	mfc0 $k0, c0_status	   # Read STATUS register
-	ori  $k0, $k0, M_StatusIEn #  and re-enable interrupts
-	mtc0 $k0, c0_status        #  else keep as it was on int entry 	
-	ehb
 	eret			   # Return from interrupt
 
 	.end _excp_0200

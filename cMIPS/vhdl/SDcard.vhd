@@ -112,21 +112,21 @@
 -- *********************************************************************
 
 
-----------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 -- Commonly-used functions and constants.
-----------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
 package CommonPckg is
 
-  constant YES  : std_logic := '1';
-  constant NO   : std_logic := '0';
+  -- constant YES  : std_logic := '1';
+  -- constant NO   : std_logic := '0';
   constant HI   : std_logic := '1';
   constant LO   : std_logic := '0';
-  constant ONE  : std_logic := '1';
-  constant ZERO : std_logic := '0';
+  -- constant ONE  : std_logic := '1';
+  -- constant ZERO : std_logic := '0';
   constant HIZ  : std_logic := 'Z';
 
   -- FPGA chip families.
@@ -257,6 +257,7 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 use work.CommonPckg.all;
+use work.p_wires.all;
 
 package SdCardPckg is
 

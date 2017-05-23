@@ -22,7 +22,7 @@ library std;
 use std.textio.all;
 
 package p_WIRES is
-
+  
   attribute BUFFERED : string;          -- this signal needs high drive
   attribute ASYNC_SET_RESET : boolean;  -- use asynchronous set+reset
   attribute ROM_BLOCK : string;         -- tell synthesis this is a ROM
@@ -67,6 +67,11 @@ package p_WIRES is
   subtype reg33 is std_logic_vector(32 downto 0);
   subtype reg64 is std_logic_vector(63 downto 0);  
 
+  constant YES  : std_logic := '1';
+  constant NO   : std_logic := '0';
+  constant ONE  : std_logic := '1';
+  constant ZERO : std_logic := '0';
+  
   constant CLOCK_PER   : time := 20 ns;
 
   -- DO NOT change (textual) format of these four lines

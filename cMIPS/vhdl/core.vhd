@@ -36,18 +36,18 @@ entity core is
     phi3   : in    std_logic;
     i_aVal : out   std_logic;
     i_wait : in    std_logic;
-    i_addr : out   std_logic_vector;
-    instr  : in    std_logic_vector;
+    i_addr : out   reg32;
+    instr  : in    reg32;
     d_aVal : out   std_logic;
     d_wait : in    std_logic;
-    d_addr : out   std_logic_vector;
-    data_inp : in  std_logic_vector;
-    data_out : out std_logic_vector;
+    d_addr : out   reg32;
+    data_inp : in  reg32;
+    data_out : out reg32;
     wr       : out std_logic;
-    b_sel    : out std_logic_vector;
+    b_sel    : out reg4;
     busFree  : out std_logic;
     nmi      : in  std_logic;
-    irq      : in  std_logic_vector;
+    irq      : in  reg6;
     i_busErr : in  std_logic;
     d_busErr : in  std_logic);
 end core;
@@ -1804,7 +1804,7 @@ begin
   int_req(1) <= irq(1);
   int_req(0) <= irq(0);
 
-  interrupt <= int_req(5) or int_req(4) or int_req(3) or int_req(3) or
+  interrupt <= int_req(5) or int_req(4) or int_req(3) or int_req(2) or
                int_req(1) or int_req(0) or
                CAUSE(CAUSE_IP1) or CAUSE(CAUSE_IP0);
 

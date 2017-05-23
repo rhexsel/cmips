@@ -1,12 +1,12 @@
 [*]
 [*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
-[*] Tue May 23 17:41:58 2017
+[*] Tue May 23 22:24:37 2017
 [*]
 [dumpfile] "/home/roberto/cMIPS/cMIPS.vcd"
-[dumpfile_mtime] "Tue May 23 17:39:49 2017"
-[dumpfile_size] 2575173
+[dumpfile_mtime] "Tue May 23 22:23:36 2017"
+[dumpfile_size] 4398786
 [savefile] "/home/roberto/cMIPS/disk.sav"
-[timestart] 1680400000
+[timestart] 6097800000
 [size] 1354 1018
 [pos] -1 -1
 *-26.000000 1694100000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
@@ -26,6 +26,8 @@ u_core.interrupt_taken
 u_core.exception_taken
 u_core.annul_twice
 u_core.nullify
+@29
+irq[5:0]
 @200
 -    decode, reg fetch
 @22
@@ -60,10 +62,7 @@ u_ram.sel
 dma_grant
 @200
 -    write-back
-@22
-u_core.wb_cop0_val[31:0]
 @28
-u_core.wb_muxc[2:0]
 u_core.wb_wreg
 @24
 u_core.wb_a_c[4:0]
@@ -87,7 +86,7 @@ u_disk.busreq
 @22
 u_disk.datum[31:0]
 u_disk.dma_addr[31:0]
-@25
+@24
 u_disk.current[9:0]
 @28
 u_disk.dma_aval
