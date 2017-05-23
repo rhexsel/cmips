@@ -532,10 +532,12 @@ architecture TB of tb_cMIPS is
   signal sddata : reg16;
   signal hDinp, hDout : reg32;
 
-  signal dma_addr, dma_dinp, dma_dout : reg32;  -- disk device (simulation)
-  signal dma_wr, dma_aval, dma_irq, busReq : std_logic;
-  signal dma_type : reg4;
-  
+  -- disk device, simulation only
+  signal dma_addr, dma_dinp, dma_dout, ram_addr, ram_inp : reg32;
+  signal dma_wr, ram_wr, dma_aval, dma_irq, ram_sel : std_logic;
+  signal dma_type, ram_xfer : reg4;
+  signal busReq, busFree_dly, dma_grant : std_logic;
+
 begin  -- TB
 
 
@@ -645,10 +647,32 @@ begin  -- TB
               mem_addr,  datram_inp, datram_out,   mem_xfer,
               cnt_d_ref, cnt_d_rd_hit, cnt_d_wr_hit, cnt_d_flush);
 
-  U_RAM: RAM generic map ("data.bin", "dump.data")
-    port map (rst, clk, mem_d_sel, ram_rdy, mem_wr, phi2,
-              mem_addr, datram_out, datram_inp, mem_xfer, dump_ram);
 
+  U_BUSFREE_DLY: FFD port map (clk, rst, '1', busFree, busFree_dly);
+
+  dma_grant <= busFree_dly and busReq;
+    
+  ram_xfer <= dma_type when dma_grant = '1' else mem_xfer;
+  ram_addr <= dma_addr when dma_grant = '1' else mem_addr;
+  ram_wr   <= dma_wr   when dma_grant = '1' else mem_wr;
+  ram_sel  <= '0'      when dma_grant = '1' else mem_d_sel;
+  ram_inp  <= dma_dout when dma_grant = '1' else datram_out;
+  
+  U_RAM: RAM generic map ("data.bin", "dump.data")
+    port map (rst, clk, ram_sel, ram_rdy, ram_wr, phi3,
+              ram_addr, ram_inp, datram_inp, ram_xfer, dump_ram);
+
+
+  -- U_RAM: RAM generic map ("data.bin", "dump.data")
+  --   port map (rst, clk, mem_d_sel, ram_rdy, mem_wr, phi2,
+  --             mem_addr, datram_out, datram_inp, mem_xfer, dump_ram);
+  
+  U_DISK: DISK
+    port map  (rst,clk, io_dma_sel,  open, wr, busFree, busReq,
+               d_addr(4 downto 2), cpu_data, dma_d_out, dma_irq,
+               dma_addr, datram_inp, dma_dout, dma_wr, dma_aval, dma_type);
+
+  
   U_SDRAMc: SDRAM_controller port map 
     (rst, clk, clk2x, sdram_aVal, sdram_wait, wr,
      cpu_xfer, d_addr(25 downto 0), hDinp,hDout,
@@ -713,12 +737,6 @@ begin  -- TB
   U_FPU: FPU
     port map (rst,clk, io_FPU_sel, io_FPU_wait, wr, d_addr(5 downto 2),
               cpu_data, fpu_d_out);
-
-
-  U_DISK: DISK
-    port map  (rst,clk, io_dma_sel,  open, wr, busFree, busReq,
-               d_addr(4 downto 2), cpu_data, dma_d_out, dma_irq,
-               dma_addr, dma_dinp, dma_dout, dma_wr, dma_aval, dma_type);
 
   -- U_sys_stats: sys_stats                -- CPU reads system counters
   --   port map (cpu_reset,clk, io_sstats_sel, wr, d_addr, sstats_d_out,

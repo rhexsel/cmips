@@ -27,6 +27,8 @@
 
 #define NUM 8
 
+#define MEM_ADDR (x_DATA_BASE_ADDR + 4096 + 2048)
+
 int main(void) {
   int i, increased, old, newValue;
   volatile int *c;
@@ -38,20 +40,27 @@ int main(void) {
 
   *(c+SRC) = 0;
 
-  *(c+DST) = x_DATA_BASE_ADDR + 4096;
+  *(c+DST) = MEM_ADDR;
 
   for (i = 0; i < 2 ; i++) {
     new = *(c+STAT);
     print(new);
   }
 
-  delay_cycle(5);
+  delay_cycle(15);
 
+  to_stdout('\n');
+  for (i = 0; i < NUM ; i++) {
+    print( *( (int *)MEM_ADDR+i ) );
+  }
+  to_stdout('\n');
+
+#if 0
   *(c+CTRL) = C_READ | C_INTER | NUM;
 
   *(c+SRC) = 0;
 
-  *(c+DST) = x_DATA_BASE_ADDR + 4096;
+  *(c+DST) = MEM_ADDR;
 
   for (i = 0; i < 2 ; i++) {
     new = *(c+STAT);
@@ -64,7 +73,7 @@ int main(void) {
   delay_cycle(1);
   new = *(c+STAT);
   print(new);
-
+#endif
 
   return(new & S_ADDR_MASK);
 

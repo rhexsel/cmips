@@ -107,7 +107,7 @@ architecture simulation of DISK is
   signal busy, take_bus, ld_curr, rst_curr, en_curr : std_logic;
   signal ctrl, src, dst, stat, datum : reg32 := (others => '0');
   signal current : reg12;
-  signal base_addr : reg20;
+  signal base_addr, curr_addr : reg32;
   signal s_intw, s_intr, set_irq, clear_irq, s_dat : std_logic;
   signal d_set_interrupt, interrupt, do_interr : std_logic;
   signal done : boolean;
@@ -153,10 +153,10 @@ begin  -- functional
   dma_wr   <= not(ctrl(C_OPER)) or not(take_bus);
   dma_aVal <= not(take_bus);
 
-  base_addr <= dst(31 downto 12) when ctrl(C_OPER) = C_OPER_RD else
-               src(31 downto 12);
-  
-  dma_addr <= base_addr & current;       -- at most 4K transfers
+  base_addr <= dst when ctrl(C_OPER) = C_OPER_RD else src;
+
+  curr_addr <= x"0000" & b"00" & current & b"00";  -- word aligned
+  dma_addr <= std_logic_vector( signed(base_addr) + signed(curr_addr) );
   
   dma_dout <= datum  when ctrl(C_OPER) = C_OPER_RD else (others => 'X');
 
@@ -203,10 +203,12 @@ begin  -- functional
   U_CURRENT: countNup generic map (12)
     port map (clk, rst_curr, '0', en_curr, ctrl(11 downto 0), current);
 
+  
   current_int <= to_integer(signed(current));
   ctrl_int    <= to_integer(signed(ctrl(11 downto 0)));
                             
   done <= current_int = ctrl_int;
+
 
   
   clear_irq <= s_intw and data_inp(I_CLR);
