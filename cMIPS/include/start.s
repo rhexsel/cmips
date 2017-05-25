@@ -130,7 +130,7 @@ _start:
 	la   $sp, (MIDDLE_RAM - 16)
 
 	
-	# set STATUS, c0, hw interrupts IRQ7,IRQ6,IRQ5 enabled, user mode
+	# set STATUS, c0, all hw+sw interrupts enabled, user mode
         li   $k0, c0_status_normal
         mtc0 $k0, c0_status
 	ehb
@@ -143,7 +143,7 @@ _exit:	nop	  # flush pipeline
 	nop
 	nop
 	nop
-	wait 0    # then stop VHDL simulation
+	wait 0    # then stop VHDL simulation gracefully
 	nop
 	nop
 	.end _start

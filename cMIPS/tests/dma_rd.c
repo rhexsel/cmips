@@ -14,7 +14,7 @@
 #define S_OPER  0x80000000
 #define S_IPEND 0x40000000
 #define S_BUSY  0x20000000
-#define S_ADDR_MASK 0x00000fff
+#define S_ADDR_MASK 0x00001fff
 
 #define I_SET   0x00000002
 #define I_CLR   0x00000001
@@ -25,7 +25,7 @@
 #define DST    3
 #define INTERR 4
 
-#define NUM 8
+#define NUM 16
 
 #define MEM_ADDR (x_DATA_BASE_ADDR + 4096 + 2048)
 
@@ -51,19 +51,27 @@ int main(void) {
 
   *(c+DST) = MEM_ADDR;    // and write NUM words to memory
 
-  for (i = 0; i < 2 ; i++) {  // do something while waiting
+  for (i = 0; i < 5 ; i++) {  // do something while waiting
     new = *(c+STAT);
     print(new);
-    delay_cycle(1);
+    delay_cycle(i);
   }
 
-  delay_cycle(5);
+  delay_cycle(20);
 
   to_stdout('\n');                    // verify if memory was written to
   for (i = 0; i < NUM ; i++) {
     print( *( (int *)MEM_ADDR+i ) );
   }
   to_stdout('\n');
+
+  new = *(c+STAT);
+  print(new);
+
+  to_stdout('\n');
+
+
+  delay_us(2); // give it plenty of time to start afresh
 
 
 #if 1
@@ -85,6 +93,11 @@ int main(void) {
   for (i = 0; i < (NUM*2) ; i++) {  // verify if memory was written to
     print( *( (int *)MEM_ADDR+i ) );
   }
+  to_stdout('\n');
+
+  new = *(c+STAT);
+  print(new);
+
   to_stdout('\n');
 
 #endif

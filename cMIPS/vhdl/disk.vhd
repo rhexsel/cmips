@@ -17,8 +17,8 @@
 
 
 -- disk(0): ctrl(31)=oper[1rd, 0wr], (30)=doInterrupt,
---          (29)=0, (28)=setIRQ, (27)=clrIRQ, (29..10)=0
---          (9..0)=transferSize in words, aligned
+--          (29)=0, (28)=setIRQ, (27)=clrIRQ, (29..11)=0
+--          (10..0)=transferSize in words, aligned
 -- disk(1): stat(31)=oper[1rd, 0wr], (30)=irqPending, (29)=busy,
 --          (28)=interrupt pending, (27..12)=0, (11..0)=currentDMAaddress
 -- disk(2): src [rd=disk file, wr=memory address]
@@ -95,20 +95,24 @@ architecture simulation of DISK is
   type int_file is file of integer;
   file my_file : int_file;
 
-  type dma_state is (st_init, st_idle, st_src, st_dst, st_bus, st_xfer,
-                     st_int, st_assert, st_wait);
+  type dma_state is (st_init, st_idle, st_src, st_dst, st_check,
+                     st_bus, st_xfer, st_int, st_assert, st_wait, st_err);
   attribute SYN_ENCODING of dma_state : type is "safe";
   signal dma_current_st, dma_next_st : dma_state;
-  signal dma_curr_dbg, current_int, ctrl_int  : integer;
+  signal dma_curr_dbg, current_int, ctrl_int, addr_int : integer;
   
   signal ld_ctrl, s_ctrl, s_stat, ld_src, s_src, ld_dst, s_dst : std_logic;
   signal busy, take_bus, ld_curr, rst_curr, en_curr : std_logic;
   signal ctrl, src, dst, stat, datum : reg32 := (others => '0');
-  signal current : reg10;
-  signal base_addr, curr_addr : reg32;
-  signal s_intw, s_intr, set_irq, clear_irq, s_dat : std_logic;
-  signal d_set_interrupt, interrupt, do_interr : std_logic;
+  signal current, xfer_sz : reg10;
+  signal last_addr : reg24;
+  signal base_addr, curr_addr, address : reg32;
+  signal s_intw, s_intr, set_irq, clear_irq, s_dat, err_sz : std_logic;
+  signal d_set_interrupt, interrupt, do_interr, ld_last : std_logic;
   signal done, last_one : boolean;
+  signal err_dsk : reg2 := b"00";
+  signal clear_hold_done, set_hold_done, d_set_hold_done, hold_done : std_logic;
+
 begin  -- functional
 
   rdy <= ZERO;                           -- simulation only, never waits
@@ -135,7 +139,7 @@ begin  -- functional
     port map (clk, rst, ld_dst, data_inp, dst);
 
   stat <= ctrl(C_OPER) & ctrl(C_INT) & busy & interrupt &
-          x"0000" & current & b"00";
+          '0' & err_sz & err_dsk & last_addr;
 
   
   with addr select
@@ -145,81 +149,116 @@ begin  -- functional
                 dst   when "011",
                 x"00000000" when others;  -- interrupts
 
-  irq      <= interrupt;
+  irq       <= interrupt;
   
-  busReq   <= take_bus;
+  busReq    <= take_bus;
   
-  dma_type <= b"1111";                   -- always transfers words
-  dma_wr   <= not(ctrl(C_OPER)) or not(take_bus);  -- write to RAM
-  dma_aVal <= not(take_bus);
+  dma_type  <= b"1111";                   -- always transfers words
+  dma_wr    <= not(ctrl(C_OPER)) or not(take_bus);  -- write to RAM
+  dma_aVal  <= not(take_bus);
 
   base_addr <= dst when ctrl(C_OPER) = C_OPER_RD else src;
-
   curr_addr <= x"0000" & b"0000" & current & b"00";  -- word aligned
-  dma_addr <= std_logic_vector( signed(base_addr) + signed(curr_addr) );
+  address   <= std_logic_vector( signed(base_addr) + signed(curr_addr) );
+
+  dma_addr  <= address;
+  dma_dout  <= datum when ctrl(C_OPER) = C_OPER_RD else (others => 'X');
+
+
+  xfer_sz  <= ctrl(9 downto 0) when ctrl_int <= 1024 else (others => '0');
+  -- check if size > 1024
+  addr_int <= to_integer(unsigned( ctrl(10 downto 0)));
+  err_sz   <= YES when addr_int > 1024 else NO;
   
-  dma_dout <= datum when ctrl(C_OPER) = C_OPER_RD else (others => 'X');
-
-
   rst_curr <= not(ld_curr) and rst;
   U_CURRENT: countNup generic map (10)
-    port map (clk, rst_curr, '0', en_curr, ctrl(9 downto 0), current);
-
-  done <= ( current = (ctrl(9 downto 0)) );
-
-  current_int <= to_integer(signed(current));
-  ctrl_int    <= to_integer(signed(ctrl(9 downto 0)));
+    port map (clk, rst_curr, '0', en_curr, xfer_sz, current);
 
   last_one <= (current_int = (ctrl_int - 1));
-
+  ld_last  <= BOOL2SL(not(last_one));
+  U_LAST_ADDR: registerN  generic map (24, x"000000")
+    port map (clk, rst, ld_last, address(23 downto 0), last_addr);
 
   
-  -- file operations -------------------------------------------------
-  U_FILE_CTRL: process(rst, clk, s_ctrl)
+  current_int <= to_integer(unsigned(current));
+  ctrl_int    <= to_integer(unsigned(ctrl(9 downto 0)));  -- check == 1024
+
+  done        <= ( (current = (ctrl(9 downto 0))) and (hold_done = NO) );
+  
+  clear_hold_done <= en_curr;     -- first increment, makes current /= 0
+  set_hold_done   <= s_ctrl;      -- wait 1 DMA access to check for done
+
+  d_set_hold_done <= (set_hold_done or hold_done) and not(clear_hold_done);
+  U_HOLD_DONE: FFDsimple port map (clk, rst, d_set_hold_done, hold_done);
+  
+  
+  
+  -- file operations -----------------------------------------------------
+  U_FILE_CTRL: process(rst, clk, s_ctrl, s_src, s_dst, data_inp, ctrl)
     variable status : file_open_status := open_ok;
     variable i_status : integer := 0;
   begin
 
     if rst = '1' then
 
-      if s_ctrl = YES and falling_edge(clk) then
-        if data_inp(C_OPER) = C_OPER_RD then            -- read file
-          if src(0) = '0' then
-            file_open(status, my_file, "DMA_0.src", read_mode);
-          else 
-            file_open(status, my_file, "DMA_1.src", read_mode);
-          end if;
-          i_status := file_open_status'pos(status);
-          assert TRUE
-            report "fileRDopen["&SLV32HEX(ctrl)&"]."&SLV32HEX(src)&" "&
-                   natural'image(i_status);
-        else                                            --  write file
-          if dst(0) = '0' then
-            file_open(status, my_file, "DMA_0.dst", write_mode);
-          else 
-            file_open(status, my_file, "DMA_1.dst", write_mode);
-          end if;
-          i_status := file_open_status'pos(status);
-          assert TRUE
-            report "fileWRopen["&SLV32HEX(ctrl)&"]."&SLV32HEX(dst)&" "&
-                   natural'image(i_status);
-        end if;
+      if (s_src = YES) and falling_edge(clk) and (ctrl(C_OPER) = C_OPER_RD)
+      then            -- read file
+        case data_inp(1 downto 0) is
+          when b"00" => file_open(status, my_file, "DMA_0.src", read_mode);
+          when b"01" => file_open(status, my_file, "DMA_1.src", read_mode);
+          when b"10" => file_open(status, my_file, "DMA_2.src", read_mode);
+          when b"11" => file_open(status, my_file, "DMA_3.src", read_mode);
+          when others => status := name_error;
+        end case;
+        i_status := file_open_status'pos(status);
+        assert status = open_ok
+          report "fileRDopen["&SLV32HEX(ctrl)&"]."&SLV32HEX(data_inp)&" "&
+          natural'image(i_status);
+        case status is
+          when open_ok      => err_dsk <= b"00";
+          when status_error => err_dsk <= b"01";
+          when name_error   => err_dsk <= b"10";
+          when mode_error   => err_dsk <= b"11";
+          when others       => null;
+        end case;
       end if;
+
+      if (s_dst = YES) and falling_edge(clk) and (ctrl(C_OPER) = C_OPER_WR)
+      then
+        case data_inp(1 downto 0) is
+          when b"00" => file_open(status, my_file, "DMA_0.dst", write_mode);
+          when b"01" => file_open(status, my_file, "DMA_1.dst", write_mode);
+          when b"10" => file_open(status, my_file, "DMA_2.dst", write_mode);
+          when b"11" => file_open(status, my_file, "DMA_3.dst", write_mode);
+          when others => status := name_error;
+        end case;
+        i_status := file_open_status'pos(status);
+        assert status = open_ok
+          report "fileWRopen["&SLV32HEX(ctrl)&"]."&SLV32HEX(data_inp)&" "&
+          natural'image(i_status);
+        case status is
+          when open_ok      => err_dsk <= b"00";
+          when status_error => err_dsk <= b"01";
+          when name_error   => err_dsk <= b"10";
+          when mode_error   => err_dsk <= b"11";
+          when others       => null;
+        end case;
+      end if; -- end write file
 
     end if; -- reset
     
-  end process U_FILE_CTRL; -------------------------------------------
+  end process U_FILE_CTRL; -----------------------------------------------
 
   
   clear_irq <= s_intw and data_inp(I_CLR);
 
-  set_irq <= ( (ctrl(C_INT) and do_interr) or (s_intw and data_inp(I_SET)) );
+  set_irq   <= ( (ctrl(C_INT) and do_interr) or (s_intw and data_inp(I_SET)) );
   
   d_set_interrupt <= set_irq or (interrupt and not(clear_irq));
   U_tx_int: FFDsimple port map (clk, rst, d_set_interrupt, interrupt);
   
 
-  -- state register---------------------------------------------------
+  -- state register-------------------------------------------------------
   U_st_reg: process(rst,clk)
   begin
     if rst = ZERO then
@@ -231,8 +270,10 @@ begin  -- functional
   dma_curr_dbg <= dma_state'pos(dma_current_st);  -- debugging only
 
   
-  U_st_transitions: process(dma_current_st, clk, s_ctrl, s_src, s_dst,
-                            busFree, current, ctrl, interrupt)
+  U_st_transitions: process(dma_current_st, clk, done,
+                            s_ctrl, s_src, s_dst, s_stat,
+                            busFree, current, ctrl, interrupt, dma_dinp,
+                            err_sz, err_dsk)
     variable i_datum : integer;
     variable i_addr, i_val : reg32;
   begin
@@ -241,34 +282,41 @@ begin  -- functional
         dma_next_st <= st_idle;
 
       when st_idle =>                   -- 1
-        if s_ctrl = '1' then
+        if s_ctrl = YES then
           dma_next_st <= st_src;
         else
           dma_next_st <= st_idle;
         end if;
 
       when st_src =>                    -- 2
-        if s_src = '1' then
+        if s_src = YES then
           dma_next_st <= st_dst;
         else
           dma_next_st <= st_src;
         end if;
 
       when st_dst =>                    -- 3
-        if s_dst = '1' then
-          dma_next_st <= st_bus;
+        if s_dst = YES then
+          dma_next_st <= st_check;
         else
           dma_next_st <= st_dst;
         end if;
 
-      when st_bus =>                    -- 4
+      when st_check =>                  -- 4  are there any errors?
+        if err_sz = NO and err_dsk = b"00" then
+          dma_next_st <= st_bus;
+        else
+          dma_next_st <= st_err;        -- YES, wait for status to be read
+        end if;
+        
+      when st_bus =>                    -- 5
         if busFree = NO then
           dma_next_st <= st_bus;
         else
           dma_next_st <= st_xfer;
         end if;
 
-      when st_xfer =>                   -- 5
+      when st_xfer =>                   -- 6
         if not(done) then               -- not done
 
           i_addr := x"00000" & current & b"00";
@@ -300,20 +348,27 @@ begin  -- functional
           dma_next_st <= st_int;
         end if;
 
-      when st_int =>                    -- 6
-        if ctrl(C_INT) = YES then       -- shall raise an interrupt?
+      when st_int =>                    -- 7
+        if ctrl(C_INT) = YES then       -- shall we raise an interrupt?
           dma_next_st <= st_assert;
         else
           dma_next_st <= st_idle;
         end if;
         file_close(my_file);
 
-      when st_assert =>                 -- 7
+      when st_assert =>                 -- 8
         dma_next_st <= st_wait;
         
-      when st_wait =>                   -- 8
+      when st_wait =>                   -- 9
         if interrupt = YES then         -- wait for IRQ to be cleared
           dma_next_st <= st_wait;
+        else
+          dma_next_st <= st_idle;
+        end if;
+
+      when st_err =>                    -- 10
+        if s_stat = NO then
+          dma_next_st <= st_err;
         else
           dma_next_st <= st_idle;
         end if;
@@ -324,7 +379,7 @@ begin  -- functional
   end process U_st_transitions; -- -----------------------------------
 
 
-  U_st_outputs: process(dma_current_st, last_one)
+  U_st_outputs: process(dma_current_st, done)
   begin
     case dma_current_st is
       when st_init | st_idle | st_src =>
@@ -341,7 +396,7 @@ begin  -- functional
         take_bus   <= NO;               -- leave the bus alone
         do_interr  <= NO; 
         
-      when st_bus =>
+      when st_bus | st_check | st_wait =>
         busy       <= YES;              -- busy
         en_curr    <= NO;               -- do not increment address
         ld_curr    <= NO;               -- do not load address
@@ -373,13 +428,6 @@ begin  -- functional
         take_bus   <= NO;               -- leave the bus alone
         do_interr  <= YES;              -- raise interrupt request
 
-      when st_wait =>
-        busy       <= NO;               -- free
-        en_curr    <= NO;               -- increment address
-        ld_curr    <= NO;               -- do not load address
-        take_bus   <= NO;               -- leave the bus alone
-        do_interr  <= NO; 
-        
       when others =>
         busy       <= NO;               -- free
         en_curr    <= NO;               -- do not increment address

@@ -320,20 +320,20 @@ disableInterr:
 	jr    $ra                   # return updated STATUS
 	nop
 	.end disableInterr
-	#----------------------------------------------------------------
+	#-----------------------------------------------------------------
 
 
-	#================================================================
+	#=================================================================
 	## TLB handlers
 	## page table entry is { EntryLo0, int0, EntryLo1, int1 }
 	## int{0,1} is
 	## { fill_31..6, Modified_5, Used_4, Writable_3, eXecutable_2,
 	##    Status_10 },
-	## Status: 00=unmapped, 01=mapped, 10=secondary_storage, 11=panic
-	#================================================================
+	## Status: 00=unmapped, 01=mapped, 10=secondary_storage, 11=locked
+	#=================================================================
 	
 
-	#================================================================
+	#=================================================================
 	# handle TLB Modified exception -- store to page with bit dirty=0
 	#
 	# (a) fix TLB entry, by setting dirty=1 ;
@@ -407,7 +407,7 @@ M_seg_fault:	# print message and abort simulation
 	nop
 	nop
 	nop
-	wait 0x41
+	wait 0x31
 	
 M_prot_viol:	# print message and abort simulation
 	la   $k1, x_IO_BASE_ADDR
@@ -417,7 +417,7 @@ M_prot_viol:	# print message and abort simulation
 	nop
 	nop
 	nop
-	wait 0x42
+	wait 0x32
 
 M_sec_mem:	# print message and abort simulation
 	la   $k1, x_IO_BASE_ADDR
@@ -427,7 +427,7 @@ M_sec_mem:	# print message and abort simulation
 	nop
 	nop
 	nop
-	wait 0x43
+	wait 0x33
 	
 	.end handle_Mod
 	#----------------------------------------------------------------
