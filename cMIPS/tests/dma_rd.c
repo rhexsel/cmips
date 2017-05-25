@@ -14,6 +14,9 @@
 #define S_OPER  0x80000000
 #define S_IPEND 0x40000000
 #define S_BUSY  0x20000000
+#define S_IPEND 0x10000000
+#define S_E_SZ  0x04000000
+#define S_E_DSK 0x03000000
 #define S_ADDR_MASK 0x00001fff
 
 #define I_SET   0x00000002

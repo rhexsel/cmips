@@ -16,14 +16,16 @@
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
--- disk(0): ctrl(31)=oper[1rd, 0wr], (30)=doInterrupt,
---          (29)=0, (28)=setIRQ, (27)=clrIRQ, (29..11)=0
---          (10..0)=transferSize in words, aligned
--- disk(1): stat(31)=oper[1rd, 0wr], (30)=irqPending, (29)=busy,
---          (28)=interrupt pending, (27..12)=0, (11..0)=currentDMAaddress
--- disk(2): src [rd=disk file, wr=memory address]
--- disk(3): dst [rd=memory address, wr=disk file]
--- disk(4): interrupt, (1)=setIRQ, (0)=clrIRQ
+-- disk(0): ctrl(31)=oper[1=rd, 0=wr], (30)=doInterrupt,
+--          (11..0)=transferSize in words, aligned, <= 1024
+-- disk(1): stat(31)=oper[1rd, 0wr], (30)=doInterrupt, (29)=busy,
+--          (28)=interrupt pending, (27)=0,
+--          (26)=errSize [transfer larger than 1024 words],
+--          (25,24)=file error [00=ok, 01=status, 10=name, 11=mode]. 
+--          (23..0)=last address referenced
+-- disk(2): src [rd=disk file {0,1,2,3}, wr=memory address]
+-- disk(3): dst [rd=memory address, wr=disk file {0,1,2,3}]
+-- disk(4): interr, (1)=setIRQ, (0)=clrIRQ
 
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -59,7 +61,8 @@ end entity DISK;
 
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- simulation version -- logic too complex for synthesis, model is useless
+-- simulation version -- logic too complex for synthesis,
+--                       as there is no hw disk, model is for simulation
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 architecture simulation of DISK is
 
@@ -90,7 +93,11 @@ architecture simulation of DISK is
   constant S_BUSY   : integer := 29;      -- controller busy=1
   constant I_SET    : integer :=  1;      -- set IRQ
   constant I_CLR    : integer :=  0;      -- clear IRQ  
-
+  
+  constant DSK_OK     : std_logic_vector(1 downto 0) := b"00";
+  constant DSK_STATUS : std_logic_vector(1 downto 0) := b"01";
+  constant DSK_NAME   : std_logic_vector(1 downto 0) := b"10";
+  constant DSK_MODE   : std_logic_vector(1 downto 0) := b"11";
 
   type int_file is file of integer;
   file my_file : int_file;
@@ -147,7 +154,7 @@ begin  -- functional
                 stat  when "001",
                 src   when "010",
                 dst   when "011",
-                x"00000000" when others;  -- interrupts
+                x"00000000" when others;  -- interrupts, does RD-mod-WR
 
   irq       <= interrupt;
   
@@ -158,7 +165,7 @@ begin  -- functional
   dma_aVal  <= not(take_bus);
 
   base_addr <= dst when ctrl(C_OPER) = C_OPER_RD else src;
-  curr_addr <= x"0000" & b"0000" & current & b"00";  -- word aligned
+  curr_addr <= x"0000" & b"0000" & current & b"00";       -- word aligned
   address   <= std_logic_vector( signed(base_addr) + signed(curr_addr) );
 
   dma_addr  <= address;
@@ -166,17 +173,16 @@ begin  -- functional
 
 
   xfer_sz  <= ctrl(9 downto 0) when ctrl_int <= 1024 else (others => '0');
-  -- check if size > 1024
-  addr_int <= to_integer(unsigned( ctrl(10 downto 0)));
-  err_sz   <= YES when addr_int > 1024 else NO;
+  addr_int <= to_integer(unsigned( ctrl(10 downto 0))); 
+  err_sz   <= YES when addr_int > 1024 else NO;   -- check if size > 1024
   
   rst_curr <= not(ld_curr) and rst;
-  U_CURRENT: countNup generic map (10)
+  U_CURRENT: countNup generic map (10)           -- current DMA reference 
     port map (clk, rst_curr, '0', en_curr, xfer_sz, current);
 
   last_one <= (current_int = (ctrl_int - 1));
   ld_last  <= BOOL2SL(not(last_one));
-  U_LAST_ADDR: registerN  generic map (24, x"000000")
+  U_LAST_ADDR: registerN  generic map (24, x"000000")       -- for status
     port map (clk, rst, ld_last, address(23 downto 0), last_addr);
 
   
@@ -215,10 +221,10 @@ begin  -- functional
           report "fileRDopen["&SLV32HEX(ctrl)&"]."&SLV32HEX(data_inp)&" "&
           natural'image(i_status);
         case status is
-          when open_ok      => err_dsk <= b"00";
-          when status_error => err_dsk <= b"01";
-          when name_error   => err_dsk <= b"10";
-          when mode_error   => err_dsk <= b"11";
+          when open_ok      => err_dsk <= DSK_OK;
+          when status_error => err_dsk <= DSK_STATUS;
+          when name_error   => err_dsk <= DSK_NAME;
+          when mode_error   => err_dsk <= DSK_MODE;
           when others       => null;
         end case;
       end if;
@@ -237,10 +243,10 @@ begin  -- functional
           report "fileWRopen["&SLV32HEX(ctrl)&"]."&SLV32HEX(data_inp)&" "&
           natural'image(i_status);
         case status is
-          when open_ok      => err_dsk <= b"00";
-          when status_error => err_dsk <= b"01";
-          when name_error   => err_dsk <= b"10";
-          when mode_error   => err_dsk <= b"11";
+          when open_ok      => err_dsk <= DSK_OK;
+          when status_error => err_dsk <= DSK_STATUS;
+          when name_error   => err_dsk <= DSK_NAME;
+          when mode_error   => err_dsk <= DSK_MODE;
           when others       => null;
         end case;
       end if; -- end write file
