@@ -418,7 +418,8 @@ architecture behavioral of simple_uart is
 
   component uart_int is
     port(clk, rst: in std_logic;
-         s_ctrl, s_stat, s_tx, s_rx : in std_logic; -- select registers
+         s_ctrlwr, s_stat : in std_logic; -- select registers
+         s_tx, s_rx       : in std_logic; -- select registers
          s_intwr, s_intrd : in std_logic; -- select interrupt register
          d_inp:  in  std_logic_vector;  -- 32 bit input
          d_out:  out std_logic_vector;  -- 32 bit output
@@ -430,28 +431,29 @@ architecture behavioral of simple_uart is
          bit_rt: out std_logic_vector); -- communication speed - for TB only
   end component uart_int;
   
-  signal s_ctrl, s_stat, s_tx, s_rx, s_intwr, s_intrd : std_logic;
+  signal s_ctrlwr, s_stat, s_tx, s_rx, s_intwr, s_intrd : std_logic;
   signal d_inp, d_out : reg32;
 
 begin
 
-  U_UART: uart_int port map (clk, rst, s_ctrl,s_stat, s_tx,s_rx,
+  U_UART: uart_int port map (clk, rst, s_ctrlwr, s_stat, s_tx, s_rx,
                              s_intwr, s_intrd,
                              d_inp,d_out, txdat,rxdat, rts,cts, irq, bit_rt);
   
   -- a3a2 wr  register (aligned to word addresses)
-  --  00  0  control, R+W             IO_UART_ADDR +0 
-  --  01  1  status,  R-O             IO_UART_ADDR +4 (writes ignored)
-  --  10  0  interrupt control R+W    IO_UART_ADDR +8 (reads 0x00)
+  --  00  0  control, W+r             IO_UART_ADDR +0
+  --  01  x  status,  R               IO_UART_ADDR +4
+  --  10  0  interrupt conmtrol W     IO_UART_ADDR +8
+  --  10  1  interrupt conmtrol R     IO_UART_ADDR +8
   --  11  0  transmission W           IO_UART_ADDR +12
   --  11  1  reception    R           IO_UART_ADDR +12
   
-  s_ctrl  <= '1' when sel = '0' and addr = b"00" else '0'; -- R+W
-  s_stat  <= '1' when sel = '0' and addr = b"01" else '0'; -- R+W
-  s_intwr <= '1' when sel = '0' and addr = b"10" and wr = '0' else '0'; -- W
-  s_intrd <= '1' when sel = '0' and addr = b"10" and wr = '1' else '0'; -- R
-  s_tx    <= '1' when sel = '0' and addr = b"11" and wr = '0' else '0'; -- W-O
-  s_rx    <= '1' when sel = '0' and addr = b"11" and wr = '1' else '0'; -- R-O
+  s_ctrlwr <= '1' when sel = '0' and addr = b"00" and wr = '0' else '0'; -- W
+  s_stat   <= '1' when sel = '0' and addr = b"01" else '0';              -- R+W
+  s_intwr  <= '1' when sel = '0' and addr = b"10" and wr = '0' else '0'; -- W
+  s_intrd  <= '1' when sel = '0' and addr = b"10" and wr = '1' else '0'; -- R
+  s_tx     <= '1' when sel = '0' and addr = b"11" and wr = '0' else '0'; -- W-O
+  s_rx     <= '1' when sel = '0' and addr = b"11" and wr = '1' else '0'; -- R-O
   
   data_out <= d_out;
   

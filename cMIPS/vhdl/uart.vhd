@@ -90,8 +90,9 @@ use work.p_UART.all;
 
 entity uart_int is
   port(clk, rst: in std_logic;
-       s_ctrl, s_stat, s_tx, s_rx : in std_logic; -- select registers
-       s_intwr, s_intrd : in std_logic; -- select interrupt register
+       s_ctrlwr, s_stat  : in std_logic; -- select registers
+       s_tx, s_rx        : in std_logic; -- select registers
+       s_intwr, s_intrd  : in std_logic; -- select interrupt register
        d_inp:  in  reg32;               -- input
        d_out:  out reg32;               -- output
        txdat:  out std_logic;           -- interface: serial transmission
@@ -196,14 +197,14 @@ begin
   d_out <= x"000000" & received when s_rx    = '1' else
            x"000000" & status   when s_stat  = '1' else
            x"00000000"          when s_intrd = '1' else  -- RD-mod-WR
-           x"000000" & ctrl;
+           x"000000" & ctrl;            -- show ctrl all other times
 
   rts <= ctrl(RTS_B);
   
   -- for testing only: tells remote unit what is the transmission speed
   bit_rt <= ctrl(2 downto 0);
   
-  U_ctrl:  register8 port map (clk,rst, s_ctrl, d_inp(7 downto 0), ctrl);
+  U_ctrl:  register8 port map (clk,rst, s_ctrlwr, d_inp(7 downto 0), ctrl);
 
   status <= cts & tx_bfr_empt & rx_bfr_full &
             interr_TX_empty & interr_RX_full & 
