@@ -37,6 +37,7 @@ usage:  $0 [options]
 OPTIONS:
    -h    Show this message
    -B    ignore blank space in comparing simulation to expected results
+   -C    re-create simulator by re-compiling all VHDL code
    -f    do a full test (takes longer)
 EOF
 }
@@ -46,6 +47,7 @@ EOF
 ignBLANKS=""
 withCache=false
 fullTest=false
+recompile=false
 
 while true ; do
 
@@ -53,6 +55,8 @@ while true ; do
         -h | "-?") usage ; exit 1
             ;;
         -B) ignBLANKS="-B"
+            ;;
+        -C) recompile=true
             ;;
         #-c) withCache=true
         #    ;;
@@ -92,7 +96,9 @@ fi
 ## force an update of all include files with edMemory.sh
 touch -t 201501010000.00 ../include/cMIPS.*
 
-(cd $tree ; $bin/build.sh) || exit 1
+if [ $recompile = true ] ; then
+    (cd $tree ; $bin/build.sh) || exit 1
+fi
 
 rm -f *.simout *.elf
 
