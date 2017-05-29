@@ -520,8 +520,8 @@ architecture TB of tb_cMIPS is
   signal key : reg12;                  -- 12 key telephone keyboard
   signal sw : reg4;                     -- 4 slide switches
   signal led_r, led_g, led_b : std_logic;  -- RGB leds (on board signals)
-  signal LCD_DATA : std_logic_vector(7 downto 0);  -- LCD data bus
-  signal LCD_RS, LCD_RW, LCD_EN, LCD_BLON : std_logic;  -- LCD control
+  signal LCD_D : std_logic_vector(7 downto 0);  -- LCD data bus
+  signal LCD_RS, LCD_RW, LCD_EN, LCD_BACKLIGHT : std_logic;  -- LCD control
   signal uart_txd, uart_rxd, uart_rts, uart_cts, uart_irq : std_logic;
   signal sdc_cs, sdc_clk, sdc_mosi_o, sdc_miso_i : std_logic;
 
@@ -717,7 +717,7 @@ begin  -- TB
   U_LCD_display: LCD_display
     port map (rst, clk, io_lcd_sel, io_lcd_wait,
               wr, d_addr(2), cpu_data, lcd_d_out,
-              lcd_data, lcd_rs, lcd_rw, lcd_en, lcd_blon);
+              lcd_d, lcd_rs, lcd_rw, lcd_en, lcd_backlight);
   
   U_simple_uart: simple_uart
     port map (rst,clk, io_uart_sel, wr, d_addr(3 downto 2),

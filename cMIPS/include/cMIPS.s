@@ -58,6 +58,12 @@
 	# normal state: COP0 present, user mode, all IRQs enabled
 	.set c0_status_normal,0x1000ff11
 
+	# user mode, enable all interrupts, EXL=0, user_mode
+        .set M_StatusIEn, 0xff11
+
+	# interrupt mask keep bits 15..8 -> STATUS.IM = CAUSE.IP
+	.set M_CauseIM,0xff00
+	
 	# reset: COUNTER stopped, use special interrVector, no interrupts
 	.set c0_cause_reset, 0x0880007c
 

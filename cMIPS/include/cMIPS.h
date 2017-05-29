@@ -27,6 +27,8 @@
 
 
 extern void exit(int);
+extern void halt(void);
+extern void exception_report(int, int, int, int);
 
 extern void cmips_delay(int);
 extern void delay_cycle(int);

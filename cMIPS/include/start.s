@@ -7,7 +7,7 @@
 	.set noreorder
 	.align 2
 	.extern main
-	.global _start,_exit,exit
+	.global _start, _exit, exit, halt
 	
 	.org x_INST_BASE_ADDR,0
 	.ent _start
@@ -145,6 +145,12 @@ _exit:	nop	  # flush pipeline
 	nop
 	wait 0    # then stop VHDL simulation gracefully
 	nop
+halt:	nop	  # flush pipeline
+	nop
+	nop
+	nop
+	nop
+	wait 0x1f # then stop VHDL simulation forcefully
 	nop
 	.end _start
 	##----------------------------------------------------------------
@@ -242,14 +248,15 @@ excp_tbl: # see Table 8-25, pg 95,96
 	j handle_TLBL # 3 == TLBS if miss on PT, on the TLB, on a store
 	nop		# should mark page as Modified on PT
 
-	wait 0x04  # 4 AdEL addr error     -- abort simulation
+	j excp_report # 4 AdEL addr error     -- abort simulation
 	nop
-	wait 0x05  # 5 AdES addr error     -- abort simulation
+	j excp_report # 5 AdES addr error     -- abort simulation
 	nop
-	wait 0x06  # 6 IBE addr error      -- abort simulation
+	j excp_report # 6 IBE addr error      -- abort simulation
 	nop
-	wait 0x07  # 7 DBE addr error      -- abort simulation
+	j excp_report # 7 DBE addr error      -- abort simulation
 	nop
+	
 	wait 0x08 # j h_syscall # 8        -- abort simulation
 	nop
 	wait 0x09 # j h_breakpoint # 9     -- abort simulation
@@ -298,7 +305,6 @@ _excp_0180ret:
 	.extern extCounter    # IRQ4 - hwIRQ2, see vhdl/tb_cMIPS.vhd
 
 	.set M_CauseIM,0xff00       # keep bits 15..8 -> IM = IP
-	.set M_StatusIEn,0xff11     # user mode, enable all interrupts, EXL=0
 
 	.set noreorder
 	

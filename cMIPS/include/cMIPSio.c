@@ -1,5 +1,6 @@
 #include "cMIPS.h"
 
+
 // -- cMIPS I/O functions -----------------------------------------------
 
 
@@ -81,6 +82,39 @@ void dumpRAM(void) {
 }; //--------------------------------------------------------------------
 
 
+//=======================================================================
+// print an error message and stop the simulation
+//=======================================================================
+void exception_report(int code, int cause, int epc, int badVAddr) {
+  int volatile *S = (int *)IO_STDOUT_ADDR;
+  int volatile *P = (int *)IO_PRINT_ADDR;
+  char *i;
+  switch (code) {
+  case 0: i = "interrupt - CAUSE.IV != 0"; break;
+  case 4: i = "addr error load"; break;
+  case 5: i = "addr error store"; break;
+  case 6: i = "instr bus error"; break;
+  case 7: i = "data bus error"; break;
+  default: i = "exception";
+  }
+  *S = '\n';
+  *S = '\t';
+  while ( *i != '\0' ) {
+    *S = *i;
+    i++;
+  }
+  i = " (cause, epc, badAddr)\n";
+  while ( *i != '\0' ) {
+    *S = *i;
+    i++;
+  }
+  *P = cause;
+  *P = epc;
+  *P = badVAddr;
+  *S = '\n';
+  halt();
+} //---------------------------------------------------------------------
+
 
 //=======================================================================
 // simulator's disk-DMA device
@@ -124,7 +158,7 @@ int mem2file(int numWds, int *src, int dst, int do_interrupt) {
   *(IO+D_SRC)  = (int)src;     // read from memory
   *(IO+D_DST)  = dst & 0x01;   // and write to file DMA_{0,1}.src 
   return ctrl;
-}
+} //---------------------------------------------------------------------
 
 
 //=======================================================================
@@ -212,6 +246,18 @@ char *memset(char *dst, const int val, int len) {
 #else  // compile FOR_SYNTHESIS
 
 
+
+
+//=======================================================================
+// print an error message and stop the simulation
+//=======================================================================
+void exception_report(int code, int cause, int epc, int badVAddr) {
+
+  DSP7SEGput( (code & 0x0f) >>4, 1, (code & 0x0f), 1, l_RED);
+
+  while (TRUE) {}; // wait forever
+
+} //---------------------------------------------------------------------
 
 
 //=======================================================================

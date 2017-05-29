@@ -5,8 +5,6 @@
 	.set noat	# do not use register $1 as $at
         .align 2
 
-	.set M_StatusIEn,0x0000ff11     # STATUS.intEn=1, user mode, EXL=0
-
 	#================================================================
 	# interrupt handler for external counter attached to IP4=HW2
 	# for extCounter address see vhdl/packageMemory.vhd
@@ -557,7 +555,24 @@ pu_miss: jr  $ra
 	##---------------------------------------------------------------
 
 
-	
+	#================================================================	
+	# print message to simulator's stdout end stop simulation
+	#
+	# k0 holds exception code
+	# exception_report(code, cause, epc, badVAddr)
+	.text
+	.global excp_report, exception_report
+	.ent excp_report
+excp_report:
+	srl  $a0, $k0, 3
+	mfc0 $a1, c0_cause
+	mfc0 $a2, c0_epc
+	mfc0 $a3, c0_badvaddr
+	j    exception_report
+	nop
+	.end excp_report
+
+
 	#================================================================	
 	# delays processing by approx 4*$a0 processor cycles
 	.text
