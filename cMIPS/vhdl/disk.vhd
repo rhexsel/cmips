@@ -40,11 +40,13 @@ use work.p_wires.all;
 entity DISK is
   port (rst      : in    std_logic;
         clk      : in    std_logic;
+        strobe   : in    std_logic;     -- strobe for file reads/writes
         sel      : in    std_logic;     -- active in '0'
         rdy      : out   std_logic;     -- active in '0'
         wr       : in    std_logic;     -- active in '0'
         busFree  : in    std_logic;     -- '1' = bus will be free next cycle
         busReq   : out   std_logic;     -- '1' = bus will be used next cycle
+        busGrant : in    std_logic;     -- '1' = bus is free in this cycle
         addr     : in    reg3;
         data_inp : in    reg32;
         data_out : out   reg32;
@@ -276,10 +278,10 @@ begin  -- functional
   dma_curr_dbg <= dma_state'pos(dma_current_st);  -- debugging only
 
   
-  U_st_transitions: process(dma_current_st, clk, done,
+  U_st_transitions: process(dma_current_st, strobe, done,
                             s_ctrl, s_src, s_dst, s_stat,
-                            busFree, current, ctrl, interrupt, dma_dinp,
-                            err_sz, err_dsk)
+                            busFree, busGrant, current, ctrl, interrupt,
+                            dma_dinp, err_sz, err_dsk)
     variable i_datum : integer;
     variable i_addr, i_val : reg32;
   begin
@@ -323,10 +325,10 @@ begin  -- functional
         end if;
 
       when st_xfer =>                   -- 6
-        if not(done) then               -- not done
+        if not(done) then     -- not done
 
           i_addr := x"00000" & current & b"00";
-          if falling_edge(clk) then
+          if ( rising_edge(strobe) and (busGrant = YES) )then
             if ctrl(C_OPER) = C_OPER_RD then  -- read
               if not(endfile(my_file)) then
                 read( my_file, i_datum );

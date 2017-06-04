@@ -54,11 +54,13 @@ architecture TB of tb_cMIPS is
   component DISK is
     port (rst      : in    std_logic;
           clk      : in    std_logic;
+          strobe   : in    std_logic;     -- strobe for file reads/writes
           sel      : in    std_logic;
           rdy      : out   std_logic;
           wr       : in    std_logic;
           busFree  : in    std_logic;     -- '1' = bus will be free next cycle
           busReq   : out   std_logic;     -- '1' = bus will be used next cycle
+          busGrant : in    std_logic;     -- '1' = bus is free in this cycle
           addr     : in    reg3;
           data_inp : in    reg32;
           data_out : out   reg32;
@@ -669,8 +671,8 @@ begin  -- TB
 
   -- busReq <= '0';  
   U_DISK: DISK
-    port map  (rst,clk, io_dma_sel,  open, wr, -- '1', open,
-               busFree, busReq,
+    port map  (rst,clk, phi1, io_dma_sel,  open, wr, -- '1', open,
+               busFree, busReq, dma_grant,
                d_addr(4 downto 2), cpu_data, dma_d_out, dma_irq,
                dma_addr, datram_inp, dma_dout, dma_wr, dma_aval, dma_type);
 

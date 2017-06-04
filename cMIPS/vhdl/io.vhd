@@ -427,8 +427,8 @@ architecture behavioral of simple_uart is
          rxdat:  in  std_logic;         -- serial reception (input)
          rts:    out std_logic;
          cts:    in  std_logic;
-         interr: out std_logic;         -- interrupt request
-         bit_rt: out std_logic_vector); -- communication speed - for TB only
+         irq_all: out std_logic;         -- interrupt request
+         bit_rt:  out std_logic_vector); -- communication speed - for TB only
   end component uart_int;
   
   signal s_ctrlwr, s_stat, s_tx, s_rx, s_intwr, s_intrd : std_logic;

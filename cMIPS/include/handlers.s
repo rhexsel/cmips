@@ -115,8 +115,9 @@ UARTinterr:
 	# .include "../tests/handlerUART.s"
 	#
 	# Your new handler should be self-contained and do the
-	#   return-from-exception.  To do that, copy the lines below up
-	#   to, but excluding, ".end UARTinterr", to yours handlerUART.s.
+	#   return-from-exception.
+	#
+	# Use "../tests/handlerUART.mod" as a template.
 	#----------------------------------------------------------------
 
 _u_rx:	lui   $k0, %hi(_uart_buff)  # get buffer's address
