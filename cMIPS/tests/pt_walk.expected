@@ -15,4 +15,20 @@
 0000000e
 0000000f
 
-ok
+	walked
+
+	TLB entry purged
+
+00000099
+
+	Mod ok
+	addr purged from TLB
+	PT purged from TLB
+00000088
+	double ok
+	purged
+0004a000
+
+	02 - protection violation
+
+

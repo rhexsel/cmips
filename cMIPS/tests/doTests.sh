@@ -56,11 +56,11 @@ while true ; do
             ;;
         -B) ignBLANKS="-B"
             ;;
-        -C) recompile=true
+        -C | -Comp | -Compile) recompile=true
             ;;
         #-c) withCache=true
         #    ;;
-        -f | -F) fullTest=true
+        -f | -F | -Full) fullTest=true
             ;;
         -x) set -x
             ;;
@@ -124,6 +124,7 @@ c_small="divmul fat fib count sieve ccitt16 gcd matrix negcnt reduz rand"
 c_types="pointer xram sort-byte sort-half sort-int memcpy"
 c_sorts="bubble insertion merge quick selection shell"
 c_FPU="FPU_m"
+c_TLB="pt_walk"
 
 ## the tests below MUST be run with FAKE CACHES
 c_timing="extCounter extCounterInt"
@@ -135,9 +136,11 @@ c_stats="sumSstats"
 ## the simulation time is far too long # c_2slow="dct-int"
 
 if [ $fullTest = true ] ; then
-   c_tests=$(echo $c_small $c_types $c_sorts $c_FPU $c_timing $c_uart)
+    c_tests=$(echo $c_small $c_types $c_sorts $c_FPU $c_timing $c_uart $c_TLB)
+    sed -i -e '/WALK_THE_PT/s:0:1:' -e '/TLB_MODIFIED/s:0:1:' \
+	-e '/DOUBLE_FAULT/s:0:1:' -e '/PROT_VIOL/s:0:1:' pt_walk.c
 else
-   c_tests=$(echo $c_small $c_types $c_timing $c_uart)
+    c_tests=$(echo $c_small $c_types $c_timing $c_uart)
 fi
 
 echo -e "\nabcdef\n012345\n" >serial.inp
@@ -171,3 +174,5 @@ for F in $(echo $c_tests) ; do
     fi
 done
 
+sed -i -e '/TLB_MODIFIED/s:1:0:' -e '/DOUBLE_FAULT/s:1:0:' \
+    -e '/PROT_VIOL/s:1:0:' -e '/PROT_VIOL/s:1:0:' pt_walk.c

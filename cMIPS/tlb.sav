@@ -1,15 +1,15 @@
 [*]
-[*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
-[*] Sat Mar 25 15:06:05 2017
+[*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
+[*] Mon Jun  5 19:17:23 2017
 [*]
-[dumpfile] "/home/roberto/cMIPS/v_cMIPS.vcd"
-[dumpfile_mtime] "Sat Mar 25 14:52:40 2017"
-[dumpfile_size] 1156971
-[savefile] "/home/roberto/cMIPS/tlb.sav"
-[timestart] 1622200000
-[size] 1240 1018
+[dumpfile] "/home/prof/roberto/cmips/cMIPS/cMIPS.vcd"
+[dumpfile_mtime] "Mon Jun  5 19:10:37 2017"
+[dumpfile_size] 21687764
+[savefile] "/home/prof/roberto/cmips/cMIPS/tlb.sav"
+[timestart] 47272000000
+[size] 1550 998
 [pos] -1 -1
-*-25.727983 1320000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-27.727983 2580000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] u_core.
 [treeopen] u_core.u_alu.
 [sst_width] 221
@@ -26,13 +26,11 @@ u_core.instr_fetched[31:0]
 u_core.pcsel[1:0]
 u_core.excp_pcsel[2:0]
 u_core.annul_twice
-u_core.exception_taken
+u_core.tlb_excp_taken
 @200
 -    decode, reg fetch
 @22
 u_core.rf_instruction[31:0]
-@24
-u_core.exception_dec[31:0]
 @200
 -    exec
 @22
@@ -40,6 +38,8 @@ u_core.alu_inp_a[31:0]
 u_core.alu_inp_b[31:0]
 u_core.result[31:0]
 u_core.v_addr[31:0]
+@28
+u_core.ex_aval
 @200
 -    memory
 @28
@@ -88,15 +88,12 @@ u_core.entrylo1[31:0]
 @200
 -
 @24
-u_core.tlb_adr[31:0]
 u_core.wired[31:0]
 u_core.random[31:0]
 @28
 u_core.hit_mm_d
 u_core.hit_mm_v
 u_core.hit_mm
-@24
-u_core.hit_mm_adr[31:0]
 @22
 u_core.tlb_tag0[31:0]
 u_core.tlb_dat0_0[25:0]
@@ -110,9 +107,7 @@ u_core.tlb_dat2_1[25:0]
 u_core.tlb_tag3[31:0]
 u_core.tlb_dat3_0[25:0]
 u_core.tlb_dat3_1[25:0]
-@23
 u_core.tlb_tag4[31:0]
-@22
 u_core.tlb_dat4_0[25:0]
 u_core.tlb_dat4_1[25:0]
 u_core.tlb_tag5[31:0]
@@ -126,7 +121,5 @@ u_core.tlb_dat7_0[25:0]
 u_core.tlb_dat7_1[25:0]
 @28
 u_core.hit_pc
-@24
-u_core.hit_pc_adr[31:0]
 [pattern_trace] 1
 [pattern_trace] 0

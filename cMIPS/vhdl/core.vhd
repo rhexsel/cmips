@@ -2370,6 +2370,9 @@ begin
     port map (clk, rst, status_update, STATUSinp, STATUS);
 
 
+  U_DLY_TLB_EXCP: FFD
+    port map (clk, rst, '1', BOOL2SL(tlb_exception), tlb_excp_taken);
+
   COP0_DELAY_TLB_EXCP: process(clk, rst)
     variable dly: std_logic;
   begin
@@ -2378,7 +2381,7 @@ begin
     elsif rising_edge(clk) then
       dly := BOOL2SL(tlb_exception);
     end if;
-    tlb_excp_taken <= dly;
+--     tlb_excp_taken <= dly;
   end process;
     
   -- CAUSE -- pg 92-- cop0_13 --------------------------

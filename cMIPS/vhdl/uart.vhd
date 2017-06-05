@@ -99,8 +99,8 @@ entity uart_int is
        rxdat:  in  std_logic;           -- interface: serial reception
        rts   : out std_logic;           -- interface: request to send
        cts   : in  std_logic;           -- interface: clear to send
-       interr: out std_logic;           -- interrupt request
-       bit_rt: out reg3);               -- communication speed, for debugging
+       irq_all: out std_logic;          -- interrupt request
+       bit_rt : out reg3);              -- communication speed, for debugging
 end uart_int;
 
 architecture estrutural of uart_int is
@@ -210,7 +210,7 @@ begin
             interr_TX_empty & interr_RX_full & 
             '0' & err_framing & err_overrun;
 
-  interr <= interr_TX_empty or interr_RX_full;
+  irq_all <= interr_TX_empty or interr_RX_full;
 
   -- TRANSMISSION ===========================================================
   -- txreg is updated under the assumption that SW checked TXempty beforehand
