@@ -43,9 +43,9 @@ static void print_str(char *);
 
 
 
-void main(void) {
+int main(void) {
   int i, rsp, new_value;
-  int *walker;
+  volatile int *walker;
 
 
 #if WALK_THE_PT
@@ -108,7 +108,7 @@ void main(void) {
 
   *walker = 0x99;              // cause a TLBrefill, then a TLBmod
 
-  if ( *walker == 0x99 ) {     // this load is optimized away by gcc
+  if ( *walker == 0x99 ) {
     print( *walker );
     print_str("\n\tMod ok\n");
   } else {
@@ -155,7 +155,7 @@ void main(void) {
   walker = (int *)(x_DATA_BASE_ADDR + PG_NUM*4096 + 1024);
   *walker = 0x88;              // cause a TLBrefill then a TLBload
 
-  if ( *walker == 0x88 ) {     // this load is optimized away by gcc
+  if ( *walker == 0x88 ) {
     print( *walker );
     print_str("\tdouble ok\n");
   } else {
@@ -243,6 +243,8 @@ void main(void) {
 
 
   to_stdout('\n');
+
+  return((int)walker);
 }
 //----------------------------------------------------------------------
 

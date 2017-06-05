@@ -499,11 +499,13 @@ L_test:	lw   $a1, 0($a2)	# get intLo{0,1}
 	nop
 
 	ori  $a1, $a1, 0x0010	# mark PT entry as used
-	sw   $a1, 0($a2)
+	# sw   $a1, 0($a2)
 
 	# if this were handler_TLBS, now is the time to also mark the
 	#    PT entry as Modified
-
+	ori  $a1, $a1, 0x0028	# mark PT entry as writable and modified
+	sw   $a1, 0($a2)
+	
 L_ret:	lw   $a0,  9*4($k1)	# nothing else to do, return
 	lw   $a1, 10*4($k1)
 	j    _excp_0180ret
@@ -518,6 +520,7 @@ L_ret:	lw   $a0,  9*4($k1)	# nothing else to do, return
 	# int TLB_purge(void *V_addr)
 	#   returns 0 if V_addr purged, 1 if V_addr not in TLB (probe failure)
 	#
+	.global TLB_purge
 	.text
 	.set noreorder
 	.ent TLB_purge
@@ -604,10 +607,7 @@ delay_us:
 	beq   $a0, $zero, _d_use
 	nop
 	li    $v0, 10
-	mult  $v0, $a0
-	nop
-	mflo  $a0
-	sra   $a0, $a0, 1
+	mul   $a0, $v0, $a0
 _d_us:	addiu $a0, $a0, -1
         nop
         nop	

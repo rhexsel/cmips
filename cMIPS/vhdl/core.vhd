@@ -138,7 +138,7 @@ architecture rtl of core is
   signal annul_1, annul_2, annul_twice : std_logic;
   signal interrupt, exception_stall : std_logic;
   signal dly_i0, dly_i1, dly_i2, dly_interr: std_logic; 
-  signal exception_taken, interrupt_taken : std_logic;
+  signal exception_taken, interrupt_taken, tlb_excp_taken : std_logic;
   signal nullify_fetch, nullify, MM_nullify : boolean;
   signal addrError, MM_addrError, abort_ref, MM_ll_sc_abort : boolean;
   signal PC_abort, RF_PC_abort, EX_PC_abort : boolean;
@@ -2369,8 +2369,18 @@ begin
   COP0_STATUS: register32 generic map (RESET_STATUS)
     port map (clk, rst, status_update, STATUSinp, STATUS);
 
-   
 
+  COP0_DELAY_TLB_EXCP: process(clk, rst)
+    variable dly: std_logic;
+  begin
+    if rst = '0' then
+      dly := '0';
+    elsif rising_edge(clk) then
+      dly := BOOL2SL(tlb_exception);
+    end if;
+    tlb_excp_taken <= dly;
+  end process;
+    
   -- CAUSE -- pg 92-- cop0_13 --------------------------
   COP0_COMPUTE_CAUSE: process(rst, clk)
                               -- update, update_reg,
@@ -2388,7 +2398,9 @@ begin
       branch_delay := is_delayslot;     -- may update
     end if;
 
-    if (interrupt_taken = '1') or (exception_taken = '1') then
+    if ( (interrupt_taken = '1') or (exception_taken = '1') or
+         (tlb_excp_taken = '1') )
+    then
       excp_code := ExcCode;             -- record new exception      
     else
       excp_code := CAUSE(CAUSE_ExcCodehi downto CAUSE_ExcCodelo);  -- hold
