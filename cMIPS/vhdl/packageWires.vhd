@@ -71,9 +71,12 @@ package p_WIRES is
   constant NO   : std_logic := '0';
   constant ONE  : std_logic := '1';
   constant ZERO : std_logic := '0';
-  
+  constant HI   : std_logic := '1';
+  constant LO   : std_logic := '0';
+
   constant CLOCK_PER   : time := 20 ns;
 
+  
   -- DO NOT change (textual) format of these four lines
   constant NUM_MAX_W_STS  : integer := 1;
   constant ROM_WAIT_STATES: integer := 0;  -- num additional wait states

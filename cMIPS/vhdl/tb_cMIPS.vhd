@@ -467,6 +467,9 @@ architecture TB of tb_cMIPS is
   -- use simulation / fake
   for U_DISK : DISK       use entity work.DISK(simulation);
   
+  -- use fake / rtl
+  for U_SDcard : SDcard use entity work.SDcard(fake);
+
   -- use simulation / fake
   for U_uart_remota: remota use entity work.remota(simulation);
 

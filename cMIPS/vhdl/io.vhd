@@ -1015,8 +1015,8 @@ end behavioral;
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
 use IEEE.std_logic_1164.all;
-use work.p_wires.all;
 use work.SdCardPckg.all;
+use work.p_wires.all;
 
 entity SDcard is
   port (rst        : in  std_logic;
@@ -1034,7 +1034,7 @@ entity SDcard is
         irq        : out std_logic); -- interrupt request (not yet used)
 end SDCard;
 
-architecture behavioral of SDcard is
+architecture rtl of SDcard is
 
   component wait_states is
     generic (NUM_WAIT_STATES :integer);
@@ -1084,6 +1084,9 @@ architecture behavioral of SDcard is
       state      : out std_logic_vector);  -- state, debugging only
   end component SdCardCtrl;
 
+  -- use fake / rtl
+  for U_SDcard : SdCardCtrl use entity work.SdCardCtrl(fake);
+
   signal s_addr, s_stat, s_ctrl, s_read, s_write : std_logic;
   signal continue, busy, hndShk_i, hndShk_o, wr_i, rd_i : std_logic;
   signal wait1, waiting, new_trans, new_data_rd, sdc_rst : std_logic;
@@ -1095,6 +1098,8 @@ architecture behavioral of SDcard is
   signal sel_data_out : reg3;
   signal state : reg5;
   signal w : reg5;
+
+
 begin
   
   U_SDcard: SdCardCtrl
@@ -1189,7 +1194,19 @@ begin
                 busy & ctrl_err & b"00" & b"000" & state & x"0" & error_o when "011",
                 (others => 'X') when others;
   
-end behavioral;
+end architecture rtl;
 -- ++ SDcard ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
+-- ++ SDcard ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+architecture fake of SDcard is
+begin
+  rdy        <= HI;
+  data_out   <= (others => 'X');
+  sdc_cs     <= HI;
+  sdc_clk    <= LO;             -- SDcard serial clock
+  sdc_mosi_o <= LO;             -- SDcard serial data out (to card)
+  irq        <= LO;             -- interrupt request (not yet used)
+end architecture fake;
+-- ++ SDcard ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  

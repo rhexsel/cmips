@@ -123,12 +123,13 @@ package CommonPckg is
 
   -- constant YES  : std_logic := '1';
   -- constant NO   : std_logic := '0';
-  constant HI   : std_logic := '1';
-  constant LO   : std_logic := '0';
+  -- constant HI   : std_logic := '1';
+  -- constant LO   : std_logic := '0';
   -- constant ONE  : std_logic := '1';
   -- constant ZERO : std_logic := '0';
   constant HIZ  : std_logic := 'Z';
 
+  
   -- FPGA chip families.
   type FpgaFamily_t is (SPARTAN3A_E, SPARTAN6_E);
 
@@ -341,7 +342,7 @@ entity SdCardCtrl is
 end entity;
 
 
-architecture arch of SdCardCtrl is
+architecture rtl of SdCardCtrl is
 
   signal sclk_r   : std_logic := ZERO; -- Register output drives SD card clock.
   signal hndShk_r : std_logic := NO;   -- Register output drives handshake output to host.
@@ -762,6 +763,19 @@ begin
   sclk_o   <= sclk_r;    -- Output the generated SPI clock for the SD card.
   hndShk_o <= hndShk_r;  -- Output the generated handshake to the host.
   
-end architecture;
+end architecture rtl;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+architecture fake of SdCardCtrl is
+begin
+  data_o <= (others => 'X');    -- Data read from block.
+  busy_o <= LO;                 -- High when controller is busy performing some operation.
+  cs_bo  <= HI;                 -- Active-low chip-select.
+  sclk_o <= LO;                 -- Serial clock to SD card.
+  mosi_o <= HI;                 -- Serial data output to SD card.
+  state  <= (others => 'X');    -- state debugging only
+end architecture fake;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
