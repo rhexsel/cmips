@@ -438,13 +438,12 @@ architecture TB of tb_cMIPS is
 
   -- use simulation / fake
   for U_write_out : write_data_file
-                               use entity  work.write_data_file(simulation);
+                     use entity  work.write_data_file(simulation);
 
   -- use simulation / fake
   for U_read_inp  : read_data_file
-                               use entity  work.read_data_file(simulation);
-  
-  
+                    use entity  work.read_data_file(simulation);
+ 
   -- use fake / behavioral
   for U_I_CACHE : I_cache use entity work.I_cache(fake);
 
@@ -468,11 +467,13 @@ architecture TB of tb_cMIPS is
   for U_DISK : DISK       use entity work.DISK(simulation);
   
   -- use fake / rtl
-  for U_SDcard : SDcard use entity work.SDcard(fake);
+  for U_SDcard : SDcard   use entity work.SDcard(fake);
 
+  -- use fake / rtl
+  for U_LCD_display : LCD_display use entity work.LCD_display(fake);
+  
   -- use simulation / fake
   for U_uart_remota: remota use entity work.remota(simulation);
-
 
   
   signal clock_50mhz, clk,clkin : std_logic;
@@ -529,7 +530,6 @@ architecture TB of tb_cMIPS is
   signal LCD_RS, LCD_RW, LCD_EN, LCD_BACKLIGHT : std_logic;  -- LCD control
   signal uart_txd, uart_rxd, uart_rts, uart_cts, uart_irq : std_logic;
   signal sdc_cs, sdc_clk, sdc_mosi_o, sdc_miso_i : std_logic;
-
   
   signal sdcke, sdscs, sdras, sdcas, sdwe : std_logic;  -- SDRAM
   signal sddqm0, sddqm1, sdba0, sdba1 : std_logic;
@@ -544,7 +544,6 @@ architecture TB of tb_cMIPS is
   signal busReq, busFree_dly, dma_grant : std_logic;
 
 begin  -- TB
-
 
   pll : mf_altpll port map (areset => a_reset, inclk0 => clock_50mhz,
    c0 => phi0in, c1 => phi1in, c2 => phi2in, c3 => phi3in, c4 => clkin);
@@ -605,8 +604,8 @@ begin  -- TB
   
   U_I_CACHE: i_cache
     port map (rst, clk4x, ic_reset,
-              inst_aVal, inst_wait, i_addr,      cpu_instr,
-              mem_i_sel,  rom_rdy,   mem_i_addr, datrom, cnt_i_ref,cnt_i_hit);
+              inst_aVal, inst_wait, i_addr,     cpu_instr,
+              mem_i_sel, rom_rdy, mem_i_addr, datrom, cnt_i_ref,cnt_i_hit);
 
   U_ROM: ROM generic map ("prog.bin")
     port map (rst, clk, mem_i_sel,rom_rdy, phi3, mem_i_addr,datrom);

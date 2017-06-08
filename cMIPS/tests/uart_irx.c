@@ -21,11 +21,11 @@
 #define U_DATA 0
 #define U_FLAG 1
 
-#define SPEED 2    // operate at 1/4 of the highest data rate
+#define SPEED 2    // operate at 1/8 of the highest data rate
 
 
 int main(void) {  // receive a string through the UART serial interface
-  Tserial volatile *uart;  // tell GCC not to optimize away code
+  Tserial  volatile *uart;  // tell GCC not to optimize away code
   Tcontrol ctrl;
   extern   int Ud[2];  // declared in include/handlers.s
   volatile int *bfr;
@@ -36,20 +36,21 @@ int main(void) {  // receive a string through the UART serial interface
 
   ctrl.ign   = 0;
   ctrl.rts   = 0;  // make RTS=0 to hold remote unit inactive
-  ctrl.intTX = 0;
-  ctrl.intRX = 0;
+  ctrl.ign4  = 0;
   ctrl.speed = SPEED;
-  uart->ctl = ctrl; // initizlize UART
+  uart->ctl  = ctrl; // initizlize UART
 
   // handler sets flag=[U_FLAg] to 1 after new character is received;
   // this program resets the flag on fetching a new character from buffer
   bfr[U_FLAG] = 0;      //   reset flag  
 
+  // do generate interrupts on RXbuffer full
+  uart->interr.i = UART_INT_progRX; // program only RX interrupts
+
   ctrl.ign   = 0;
   ctrl.rts   = 1;  // make RTS=1 to activate remote unit
-  ctrl.intTX = 0;
-  ctrl.intRX = 1;  // do generate interrupts on RXbuffer full
-  ctrl.speed = SPEED;  // operate at 1/4 of the highest data rate
+  ctrl.ign4  = 0;
+  ctrl.speed = SPEED;
   uart->ctl = ctrl;
 
   do {

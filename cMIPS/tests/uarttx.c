@@ -57,11 +57,9 @@ int main(void) { // send a string through the UART serial interface
   counter = (void *)IO_COUNT_ADDR; // counter's address
 
   ctrl.speed = SPEED;
-  ctrl.intTX = 0;  // no interrupts
-  ctrl.intRX = 0;
-  ctrl.ign2  = 0;
-  ctrl.ign   = 0;
+  ctrl.ign4  = 0;
   ctrl.rts   = 0;  // make RTS=0 so RemoteUnit won't transmit, just receive
+  ctrl.ign   = 0;
   uart->ctl = ctrl;
 
   i = 0;

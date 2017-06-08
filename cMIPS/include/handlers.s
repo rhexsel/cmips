@@ -93,8 +93,11 @@ _uart_buff: .space 16*4 # up to 16 registers to be saved here
 	# _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=$v0, [3]=$v1,
 	#           [4]=$ra, [5]=$a0, [6]=$a1, [7]=$a2, [8]=$a3
 	
-	.set U_rx_irq,0x08
-	.set U_tx_irq,0x10
+	.equ U_rx_irq,0x08
+	.equ U_tx_irq,0x10
+
+	.equ U_Ud_data,0*4
+	.equ U_Ud_flag,1*4
 
 	.equ UCTRL,  0	# UART registers' displacement from base
 	.equ USTAT,  4
@@ -115,7 +118,7 @@ UARTinterr:
 	# .include "../tests/handlerUART.s"
 	#
 	# Your new handler should be self-contained and do the
-	#   return-from-exception.
+	#   return-from-exception (eret).
 	#
 	# Use "../tests/handlerUART.mod" as a template.
 	#----------------------------------------------------------------
@@ -132,8 +135,9 @@ _u_rx:	lui   $k0, %hi(_uart_buff)  # get buffer's address
 
 	lw    $k1, USTAT($a0) 	    # Read status
 	sw    $k1, 0*4($k0)         #  and save UART status to memory
-	
-	li    $a1, U_rx_irq	    # remove interrupt request
+
+	lw    $a1, UINTER($a0)      # Read interrupt register
+	ori   $a1, $a1, U_rx_irq    # remove interrupt request
 	sw    $a1, UINTER($a0)
 	
 	and   $a1, $k1, $a1         # Is this reception?
@@ -145,10 +149,9 @@ _u_rx:	lui   $k0, %hi(_uart_buff)  # get buffer's address
 
 	lui   $a2, %hi(Ud)          # get address for data & flag
 	ori   $a2, $a2, %lo(Ud)
-	
-	sw    $a1, 0*4($a2)         #   and return from interrupt
+	sw    $a1, U_Ud_data($a2)   #   and return from interrupt
 	addiu $a1, $zero, 1
-	sw    $a1, 1*4($a2)         # set flag to signal new arrival 
+	sw    $a1, U_Ud_flag($a2)   # set flag to signal new arrival 
 
 UARTret:
 	lw    $a2, 7*4($k0)

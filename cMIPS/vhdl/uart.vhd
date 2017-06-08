@@ -54,9 +54,7 @@ end p_UART;
 --         101: 1/128 CPU clock rate -- for VHDL/C debugging only
 --         110:  19.200 bits per second
 --         111:   9.600 bits per second
--- b3=1:   signal interrupt on RX buffer full, when a new octet is available
--- b4=1:   signal interrupt on TX buffer empty, when TX space is available
--- b5,b6:  ignored, not used
+-- b3-b6:  ignored, not used
 -- b7=1:   turn on Request to Send (RTS)
 --
 -- Baud rates dividers (BAUD_RT_n) are defined in packageWires.vhd
@@ -73,13 +71,17 @@ end p_UART;
 --
 -- when CPU reads from RXdat register, bits 0 and 1 of status are cleared
 -- 
--- interrupt clear register, least significant byte only
--- b2..b0: ignored, not used
+-- interrupt register, least significant byte only
+-- b0=1:   program interrupt on RX buffer full, when a new octet is available
+-- b1=1:   program interrupt on TX buffer empty, when TX space is available
+-- b2:     ignored, not used
 -- b3=1:   clear interrupt bit on RX buffer full (IRQ -> 0)
 -- b4=1:   clear interrupt bit on TX buffer empty (IRQ -> 0)
 -- b5=1:   set interrupt bit on RX buffer full (IRQ -> 1)
 -- b6=1:   set interrupt bit on TX buffer empty (IRQ -> 1)
 -- b7:     ignored, not used
+--
+-- reading the interrupr register returns bits b0,b1, remaining return 0
 --
 -- RX and TX circuits are dobule-buffered
 --
@@ -93,36 +95,36 @@ entity uart_int is
        s_ctrlwr, s_stat  : in std_logic; -- select registers
        s_tx, s_rx        : in std_logic; -- select registers
        s_intwr, s_intrd  : in std_logic; -- select interrupt register
-       d_inp:  in  reg32;               -- input
-       d_out:  out reg32;               -- output
-       txdat:  out std_logic;           -- interface: serial transmission
-       rxdat:  in  std_logic;           -- interface: serial reception
+       d_inp : in  reg32;               -- input
+       d_out : out reg32;               -- output
+       txdat : out std_logic;           -- interface: serial transmission
+       rxdat : in  std_logic;           -- interface: serial reception
        rts   : out std_logic;           -- interface: request to send
        cts   : in  std_logic;           -- interface: clear to send
-       irq_all: out std_logic;          -- interrupt request
-       bit_rt : out reg3);              -- communication speed, for debugging
+       irq_all : out std_logic;         -- interrupt request
+       bit_rt  : out reg3);             -- communication speed, for debugging
 end uart_int;
 
-architecture estrutural of uart_int is
+architecture rtl of uart_int is
 
   constant CLOCK_DIVIDER : integer := 50;
 
   -- bit in ctrl register to set/clear the RTS serial interface signal
   constant RTS_B : integer := 7;
 
-  -- bit in interrupt register to set/clear RX interrupt request
+  -- bit in interrupt register to set RX interrupt request
   constant SET_IRQ_TX : integer := 6;
-  -- bit in interrupt register to set/clear RX interrupt request
+  -- bit in interrupt register to set TX interrupt request
   constant SET_IRQ_RX : integer := 5;
-  -- bit in interrupt register to set/clear TX interrupt request
+  -- bit in interrupt register to clear TX interrupt request
   constant CLR_IRQ_TX : integer := 4;
-  -- bit in interrupt register to set/clear RX interrupt request
+  -- bit in interrupt register to clear RX interrupt request
   constant CLR_IRQ_RX : integer := 3;
 
-  -- bit in ctrl register to set/clear TX interrupt request
-  constant IRQ_TX_B : integer := 4;
-  -- bit in ctrl register to set/clear RX interrupt request
-  constant IRQ_RX_B : integer := 3;
+  -- bit in interr register to program a TX interrupt request
+  constant IRQ_TX_B : integer := 1;
+  -- bit in interr register to program a RX interrupt request
+  constant IRQ_RX_B : integer := 0;
 
   
   component register8 is
@@ -130,6 +132,12 @@ architecture estrutural of uart_int is
          D:            in  std_logic_vector;
          Q:            out std_logic_vector);
   end component register8;
+
+  component register2 is
+    port(clk, rst, ld: in  std_logic;
+         D:            in  std_logic_vector;
+         Q:            out std_logic_vector);
+  end component register2;
 
   component par_ser10 is
     port(clk, rst, ld, desl: in  std_logic;
@@ -175,6 +183,7 @@ architecture estrutural of uart_int is
   signal tx_dbg_st, txcpu_dbg_st, rx_dbg_st, rxcpu_dbg_st : integer; 
 
   signal ctrl, status, txreg, rxreg, received : reg8;
+  signal interr : reg2;
   signal tx_bit_rt, rx_bit_rt : std_logic;
   signal en_tx_clk, txclk, txclk_rise : std_logic;
   signal tx_ld, tx_shift, tx_next, tx_bfr_empt, tx_shr_full : std_logic;
@@ -196,7 +205,7 @@ begin
   --   sequences to set or clear individual bits
   d_out <= x"000000" & received when s_rx    = '1' else
            x"000000" & status   when s_stat  = '1' else
-           x"00000000"          when s_intrd = '1' else  -- RD-mod-WR
+           x"0000000" & b"00" & interr  when s_intrd = '1' else  -- RD-mod-WR
            x"000000" & ctrl;            -- show ctrl all other times
 
   rts <= ctrl(RTS_B);
@@ -204,7 +213,9 @@ begin
   -- for testing only: tells remote unit what is the transmission speed
   bit_rt <= ctrl(2 downto 0);
   
-  U_ctrl:  register8 port map (clk,rst, s_ctrlwr, d_inp(7 downto 0), ctrl);
+  U_ctrl: register8 port map (clk,rst, s_ctrlwr, d_inp(7 downto 0), ctrl);
+
+  U_interr: register2 port map (clk,rst, s_intwr, d_inp(1 downto 0), interr);
 
   status <= cts & tx_bfr_empt & rx_bfr_full &
             interr_TX_empty & interr_RX_full & 
@@ -224,7 +235,7 @@ begin
 
   clear_tx_irq <= '0' when s_intwr = '1' and d_inp(CLR_IRQ_TX) = '1' else '1';
   
-  tx_int_set <= ( (ctrl(IRQ_TX_B) and tx_ld) or
+  tx_int_set <= ( (interr(IRQ_TX_B) and tx_ld) or
                   (s_intwr and d_inp(SET_IRQ_TX)) );
   d_int_tx_empty <= (interr_TX_empty or tx_int_set) and clear_tx_irq;
   U_tx_int: FFDsimple port map (clk, rst, d_int_tx_empty, interr_TX_empty);
@@ -431,7 +442,7 @@ begin
 
   clear_rx_irq <= '0' when s_intwr = '1' and d_inp(CLR_IRQ_RX) = '1' else '1';
   
-  rx_int_set   <= ( (ctrl(IRQ_RX_B) and rx_done) or
+  rx_int_set   <= ( (interr(IRQ_RX_B) and rx_done) or
                     (s_intwr and d_inp(SET_IRQ_RX)) );
     
   d_rx_int_set <= (rx_int_set or interr_RX_full) and clear_rx_irq;
@@ -710,7 +721,7 @@ begin
     end if;
   end process U_bit_rt_rx;
 
-end estrutural;
+end architecture rtl;
 -- -------------------------------------------------------------------
 
 
@@ -735,6 +746,38 @@ begin
   begin
     if rst = '0' then
       value := x"00";
+    elsif rising_edge(clk) then
+      if ld = '1' then
+        value := D;
+      end if;
+    end if;
+    Q <= value;
+  end process;
+
+end functional;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- 2 bit register, reset=0 asynchronous, load=1 synchronous
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library ieee; use ieee.std_logic_1164.all;
+use work.p_WIRES.all;
+
+entity register2 is
+  port(clk, rst, ld: in  std_logic;
+        D:           in  reg2;
+        Q:           out reg2);
+end register2;
+
+architecture functional of register2 is
+begin
+
+  process(clk, rst)
+    variable value: reg2;
+  begin
+    if rst = '0' then
+      value := b"00";
     elsif rising_edge(clk) then
       if ld = '1' then
         value := D;

@@ -789,20 +789,20 @@ entity LCD_display is
         sel      : in    std_logic;
         rdy      : out   std_logic;
         wr       : in    std_logic;
-        addr     : in    std_logic; -- 0=constrol, 1=data
+        addr     : in    std_logic;  -- 0=constrol, 1=data
         data_inp : in    std_logic_vector(31 downto 0);
         data_out : out   std_logic_vector(31 downto 0);
         LCD_DATA : inout std_logic_vector(7 downto 0);  -- bidirectional bus
-        LCD_RS   : out   std_logic; -- LCD register select 0=ctrl, 1=data
-        LCD_RW   : out   std_logic; -- LCD read=1, 0=write
-        LCD_EN   : out   std_logic; -- LCD enable=1
-        LCD_BLON : out   std_logic);
+        LCD_RS   : out   std_logic;  -- LCD register select 0=ctrl, 1=data
+        LCD_RW   : out   std_logic;  -- LCD read=1, 0=write
+        LCD_EN   : out   std_logic;  -- LCD enable=1
+        LCD_BLON : out   std_logic); -- LCD backlight on=1
   constant NUM_BITS : integer := 8;
   subtype c_width is std_logic_vector(NUM_BITS - 1 downto 0);
   constant INIT_VALUE : c_width := (others => '0');
 end LCD_display;
 
-architecture behavioral of LCD_display is
+architecture rtl of LCD_display is
 
   component wait_states is
     generic (NUM_WAIT_STATES :integer);
@@ -982,7 +982,19 @@ begin
     end case;
   end process U_st_outputs;
 
-end behavioral;
+end architecture rtl;
+-- -----------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------
+architecture fake of LCD_display is
+begin
+  rdy  <= HI;
+  data_out <= (others => 'X');
+  LCD_RS   <= LO;       -- LCD register select 0=ctrl, 1=data
+  LCD_RW   <= HI;       -- LCD read=1, 0=write
+  LCD_EN   <= LO;       -- LCD enable=1
+  LCD_BLON <= LO;       -- LCD backlight on=1
+end architecture fake;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -1033,6 +1045,7 @@ entity SDcard is
         sdc_miso_i : in  std_logic;  -- SDcard serial data inp (fro card)
         irq        : out std_logic); -- interrupt request (not yet used)
 end SDCard;
+
 
 architecture rtl of SDcard is
 
