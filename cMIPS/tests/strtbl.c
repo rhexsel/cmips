@@ -8,7 +8,7 @@ void MSYS_Init( void *, unsigned );
 extern int *myheap;
 
 #ifndef MALLOC_BASE_ADDRESS
-  #define MALLOC_BASE_ADDRESS (x_DATA_BASE_ADDR + 0x00002000)
+  #define MALLOC_BASE_ADDRESS (x_DATA_BASE_ADDR + 0x00001000)
   #define MALLOC_SIZE         0x00001000
 #endif
 
@@ -23,6 +23,7 @@ extern int *myheap;
 #define malloc(s)  MSYS_Alloc(s)
 
 int random(void);
+static inline void init_random(void);
 
 int strcpy(const char *, char *);
 int strcat(char *, const char *);
@@ -30,63 +31,81 @@ int strlen(const char *);
 
 int insert(char *);     // returns index at vector of addresses
 char *show(int);        // print string at index, or ERROR
-void printall(void);    // prints all strings in the stringTable
+void printall(int);     // prints all strings in the stringTable
 void printstr(char *);  // print string
 int  remove(int);       // delete string at index, return TRUE if was present
 
 
-char *err="ERROR\n";
+char *err="\n\tERROR\n";
 
-#define STR_SZ 16
-
-#define TBL_SZ 10
+#define STR_SZ (1<<3)   // must be power of 2
+#define TBL_SZ (1<<3)   // must be power of 2, >= 8
 
 int *myheap;
 
-char s[STR_SZ+1];
+char s[2*STR_SZ];
+
+static int   index = 0;
+static char *strVector[TBL_SZ];
+
+// convert small integer (i<16) to lower case ASCII
+static inline unsigned char n2c(int i) {
+  return ( ((i) < 'a') ? ('A'+((i)&0x1f)) :
+	   ( ((i) > 'z') ? ('.') : ('a'+((i)&0x1f)) ) );
+}
+
 
 void main(void) {
 
   int i,j,k;
   char c;
 
+  index = 0;
+
+  init_random();
+
   myheap = (int *)MALLOC_BASE_ADDRESS;
 
   MSYS_Init( (void *)MALLOC_BASE_ADDRESS, (unsigned)MALLOC_SIZE );
 
   // insert TBL_SZ random strings
-  for (i=0; i < TBL_SZ; i++) {
-    j = (random() >>8) & 0xf; // % STR_SZ;
-    print(j);
-    for (k=0; k < j; k++) {
-      c = ('a' + i + k) & 0x7f; // % 127
-      to_stdout(c);
-      s[k] = c;
+  for (i = 0; i < TBL_SZ; i++) {
+    j = ( (1 + random()) & (STR_SZ-1) );
+    // print(j);
+    k = 0;
+    while (k < j) { // (STR_SZ-1)) {
+      c = n2c( 1 + (random()) & 0x7f); // n to ASCII, not '\0'
+      // to_stdout(c);
+      s[k++] = c;
     }
-    to_stdout('\n');
-    print(k);
+    // to_stdout('\n');
+    s[k++] = '\n';
     s[k] = '\0';
     printstr(s);
-    // insert(s);
+    insert(s);
   }
 
-  printall(); // show full table
+  to_stdout('\n');
 
-  // now remove 3 randomly chosen strings
-  for (k=0; k < 3; k++) {
-    j = random() % TBL_SZ;
+  printall(TBL_SZ); // show full table
+
+  // now remove some randomly chosen strings
+  for (k=0; k < (TBL_SZ/2-1); k++) {
+    j = random() & (TBL_SZ-1);
     if ( remove(j) == FALSE )
       printstr(err);
   }
 
-  printall(); // show table minus items removed
+  to_stdout('\n');
+
+  printall(TBL_SZ); // show table minus items removed
+
+  to_stdout('\n');
 
   exit(0);
 
 }
 
-static index = 0;
-static char *strVector[TBL_SZ];
 
 // returns index at vector of addresses
 int insert(char *s) {
@@ -143,17 +162,18 @@ char *show(int i) {
 void printstr(char *s) {
   char c;
 
-  while( (c = *s) != '\0' )
+  while( (c = *s) != '\0' ) {
     to_stdout(c);
-  to_stdout('\n'); // end of string to GHDL simulator
+    s++;
+  }
 }
 
 
-void printall(void) {
+void printall(int tbl_sz) {
   int i;
   char *s;
 
-  for (i=0; i < TBL_SZ; i++)
+  for (i=0; i < tbl_sz; i++)
     if ( (s = show(i)) != NULL )
       printstr(s);
 }
@@ -165,13 +185,18 @@ void printall(void) {
 
 #define ABS(x) ( ((x) < 0) ? -(x) : (x) )
 
-static int m_w = 177;    /* must not be zero, nor 0x464fffff */
-static int m_z = 311;    /* must not be zero, nor 0x9068ffff */
+static volatile int m_w = 177;    /* must not be zero, nor 0x464fffff */
+static volatile int m_z = 311;    /* must not be zero, nor 0x9068ffff */
 
 int random(void) {
   m_z = 36969 * (m_z & 65535) + (m_z >> 16);
   m_w = 18000 * (m_w & 65535) + (m_w >> 16);
   return ((m_z << 16) + m_w);  /* 32-bit result */
+}
+
+static inline void init_random(void) {
+  m_w = 177;
+  m_z = 311;
 }
 
 
