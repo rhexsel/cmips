@@ -4,8 +4,6 @@
 
 #include "cMIPS.h"
 
-#define FALSE (0==1)
-#define TRUE  !(FALSE)
 
 // convert small integer (i<16) to hexadecimal digit
 #define i2c(a) ( ((a) < 10)   ? ((a)+'0') : (((a)+'a')-10) )

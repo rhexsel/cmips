@@ -6,9 +6,6 @@
 
 #include "cMIPS.h"
 
-#define TRUE  (1==1)
-#define FALSE (1==0)
-
 //---------------------------------------------------------------------
 int fibonacci(int n) {
   int i;

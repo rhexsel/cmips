@@ -9,10 +9,9 @@
 
 extern int _counter_val;
 
-#define FALSE (0==1)
-#define TRUE  !FALSE
-
 #define QUARTER 12500000
+
+#define conv(a) ((a<10)?((a)+0x30):((a)+('a'-10)))
 
 void main(void) {
   int i, j, k;
@@ -21,6 +20,18 @@ void main(void) {
 
   LCDinit();
 
+  LCDtopLine();
+
+
+  if (SWget() != 0) {
+    LCDprint( print_status() ); // for debugging only
+    LCDprint( print_cause() );  // for debugging only
+    LCDbotLine();
+    LCDprint( print_sp() );     // for debugging only
+    delay_ms(10000);
+  }
+
+  LCDclr();
   LCDtopLine();
 
 #if 1
@@ -52,18 +63,13 @@ void main(void) {
 
   // enableInterr();
 
-  startCounter(QUARTER,TRUE); // counter will interrupt after 1/4 second
-
   sec = min = hour = 0;
 
-  i = 0;
+  LCDbotLine();
 
-  if (SWget() != 0) {
-    LCDprint( print_status() ); // for debugging only
-    delay_ms(2000);
-    LCDprint( print_cause() ); // for debugging only
-    delay_ms(2000);
-  }
+  startCounter(QUARTER,TRUE); // counter will interrupt after 1/4 second
+
+  i = 0;
 
   while (TRUE) {
 
@@ -75,20 +81,20 @@ void main(void) {
 
     switch(i) {
     case 0:
-      j = 0x09; break;
+      j = 0x09; break;  // |^
     case 1:
-      j = 0x0b; break;
+      j = 0x0b; break;  // |_
     case 2:
-      j = 0x0c; break;
+      j = 0x0c; break;  // _|
     default:
-      j = 0xa;
+      j = 0xa;          // ^|
       i = -1;
       sec += 1;
       break;
     };
     i += 1;
-    DSP7SEGput(0, 0, 0, 0, (i<<2)); // blink red led
- 
+    DSP7SEGput(0, 0, 0, 0, ((i&1)<<2)); // blink red led
+
     LCDgotoxy(1, 2);
     LCDput(j);
 
@@ -104,19 +110,18 @@ void main(void) {
 
     LCDgotoxy(4, 2);
 
-#define conv(a) ((a<10)?((a)+0x30):((a)+('a'-10)))
-
     k = (hour>>4) & 0x0f;
     LCDput( conv(k) );
     k = hour & 0x0f;
     LCDput( conv(k) );
 
     LCDput(':');
-
+#if 0   
     k = (min>>4) & 0x0f;
     LCDput( conv(k) );
     k = min & 0x0f;
     LCDput( conv(k) );
+#endif
 
     LCDput(':');
 

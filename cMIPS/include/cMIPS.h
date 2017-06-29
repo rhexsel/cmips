@@ -89,6 +89,7 @@ extern int  SWget(void);
 #define l_BLUE  0x1
 
 
+#if 0
 // struct to access the cache system statistics "peripheral"
 typedef struct sStats {
   int dc_ref;      // data cache references
@@ -100,3 +101,7 @@ typedef struct sStats {
 } sStats;
 
 extern void readStats(sStats *);
+#endif
+
+#define FALSE (0==1)
+#define TRUE  (0==0)

@@ -82,20 +82,21 @@ while true ; do
 	    ;;
 	-Os ) level=s
 	    ;;
-	-W | -Wall) warn=-Wall
+	-W | -Wall ) warn=-Wall
 	    ;;
-        -v) verbose=true
+        -v ) verbose=true
             ;;
-        -n) names=false
+        -n ) names=false
             ;;
-        -mif | -syn ) synth=true
+        -mif | -syn )
+	    synth=true
 	    miffile=true
             ;;
         -new ) pacMem_changed=true
             ;;
-        -x) set -x
+        -x ) set -x
             ;;
-        *)  inp=${1%.c}
+        * )  inp=${1%.c}
 	    if [ ${inp}.c != $1 ] ; then
 		usage ; echo "	invalid option: $1"; exit 1 ; fi
 	    break
@@ -152,8 +153,8 @@ if [ $verbose = true ]; then  memory_map="-Map ${inp}.map" ; fi
 
 cflags="-DcMIPS -mcode-readable=no -mno-gpopt -fno-builtin"
 
-(mips-gcc -O${level} $warn $cflags -I"${include}" \
-          -S ${src} $S -o ${asm}  ||  exit 1) && \
+(mips-gcc -O${level} ${warn} ${cflags} -I"${include}" \
+          -S ${src} ${S} -o ${asm}  ||  exit 1) && \
 mips-gcc -O1 $cflags -I"${include}" -S ${c_io}.c -o ${c_io}.s $S &&\
 mips-as  -O1 -EL -mips32 -I "${include}" -o ${obj} ${asm} && \
 mips-as  -O1 -EL -mips32 -I "${include}" -o ${c_start}.o ${c_start}.s && \

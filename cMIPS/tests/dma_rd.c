@@ -4,9 +4,6 @@
 
 #include "cMIPS.h"
 
-#define FALSE (0==1)
-#define TRUE  !(FALSE)
-
 #define C_READ  0x80000000
 #define C_WRITE 0x00000000
 #define C_INTER 0x40000000

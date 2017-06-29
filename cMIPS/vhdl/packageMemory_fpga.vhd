@@ -49,10 +49,10 @@ package p_MEMORY is
   constant x_IO_ADDR_RANGE  : reg32   := x"00000020";
   constant x_SDRAM_BASE_ADDR : reg32  := x"04000000";
   constant x_SDRAM_MEM_SZ    : reg32  := x"02000000";
-  constant x_EXCEPTION_0000 : reg32   := x"00000200";  -- TLBrefill
-  constant x_EXCEPTION_0100 : reg32   := x"00000240";  -- CacheError
+  constant x_EXCEPTION_0000 : reg32   := x"00000130";  -- TLBrefill
+  constant x_EXCEPTION_0100 : reg32   := x"00000200";  -- CacheError
   constant x_EXCEPTION_0180 : reg32   := x"00000280";  -- generalExcpHandler
-  constant x_EXCEPTION_0200 : reg32   := x"00000340";  -- separInterrHandler
+  constant x_EXCEPTION_0200 : reg32   := x"00000400";  -- separInterrHandler
   constant x_EXCEPTION_BFC0 : reg32   := x"000004E0";  -- NMI, soft-reset
   constant x_ENTRY_POINT    : reg32   := x"00000500";  -- main()
   -- end DO NOT change these names --

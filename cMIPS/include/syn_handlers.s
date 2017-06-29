@@ -5,10 +5,8 @@
 	.set noat	# do not use register $1 as $at
         .align 2
 
-	.set M_StatusIEn,0x0000e011     # STATUS.intEn=1, user mode, EXL=0
-
 	#================================================================
-	# interrupt handler for external counter attached to IP5=HW3
+	# interrupt handler for external counter attached to IP4=HW2
 	# for extCounter address see vhdl/packageMemory.vhd
 	#
 	# counter set to interrupt 4 times per second (12,500,000*20ns)
@@ -22,9 +20,9 @@ _counter_saves:	.space 8*4	# area to save up to 8 registers
 	
 	.set HW_counter_value,(0xc0000000 | 0x00bebc20) # 12,500,000
 
+	.global extCounter
 	.text
 	.set    noreorder
-	.global extCounter
 	.ent    extCounter
 
 extCounter:
@@ -46,10 +44,10 @@ extCounter:
 
 	lui   $k0, %hi(_counter_val)  # Increment interrupt event counter
 	ori   $k0, $k0, %lo(_counter_val)
-	lw    $k1,0($k0)
+	lw    $k1, 0($k0)
 	nop
-	addiu $k1,$k1,1
-	sw    $k1,0($k0)
+	addiu $k1, $k1, 1
+	sw    $k1, 0($k0)
 
 	#----------------------------------
 	# if you changed this handler, then restore those same registers
@@ -162,7 +160,52 @@ UARTret:
 	.end UARTinterr
 	#----------------------------------------------------------------
 
-	
+
+        #================================================================
+        # interrupt handler for DMA controller attached to IP5=HW3
+        # for DMA-disk controller address see vhdl/packageMemory.vhd
+        #
+	# NOT IMPLEMENTED FOR SYNTHESIS
+	#
+        .bss
+        .align  2
+        .global _dma_status
+_dma_status: .space 2*4         # 2 words to share with DMA-disk driver
+_dma_saves:  .space 4*4         # area to save up to 4 registers
+        # _dma_saves[0]=$a0, [1]=$a1, [2]=$a2, [3]=$a3
+
+        .set D_clr_irq, 0x0001
+
+        .equ D_FLAG, 0  # DMAinterr flag, done=1
+        .equ D_LAST, 4  # DMA device status post interrupt
+
+        .equ DCTRL,  0  # DMAcontroller registers' displacement from base
+        .equ DSTAT,  4
+        .equ DSRC,   8
+        .equ DDST,  12
+        .equ DINTER,16
+
+        .text
+        .set    noreorder
+        .global DMAinterr
+        .ent    DMAinterr
+
+	##
+	## should NEVER get to this address, signal error
+	##
+DMAinterr:
+        la   $k0, HW_dsp7seg_addr       # 7 segment display
+        li   $k1, 0x4355                # display .5.5, RED
+        sw   $k1, 0($k0)                # write to 7 segment display
+heret:  j    heret                      # wait forever
+	nop
+
+        eret                        # Return from interrupt
+        .end DMAinterr
+        #----------------------------------------------------------------
+
+
+
 	#================================================================
 	# handler for COUNT-COMPARE registers -- IP7=HW5
 	.text
@@ -527,19 +570,16 @@ _d_cye:	jr    $ra
         .set    noreorder
         .ent    delay_us
 delay_us:
-	beq   $a0, $zero, _d_use
-	nop
-        li    $v0, 10
-        mult  $v0, $a0
+        beq   $a0, $zero, _d_use
         nop
-        mflo  $a0
-        sra   $a0, $a0, 1
+        li    $v0, 10
+        mul   $a0, $v0, $a0
 _d_us:  addiu $a0, $a0, -1
         nop
         nop
         bne   $a0, $zero, _d_us
         nop
-_d_use:	jr    $ra
+_d_use: jr    $ra
         nop
         .end    delay_us
         #----------------------------------------------------------------
@@ -553,16 +593,16 @@ _d_use:	jr    $ra
         .ent    delay_ms
 delay_ms:
 	beq   $a0, $zero, _d_mse
-	nop
+        nop
         li    $v0, 10000
         mul   $a0, $v0, $a0
         nop
 _d_ms:  addiu $a0, $a0, -1
         nop
-	nop
+        nop
         bne   $a0, $zero, _d_ms
         nop
-_d_mse:	jr    $ra
+_d_mse: jr    $ra
         nop
         .end    delay_ms
         #----------------------------------------------------------------

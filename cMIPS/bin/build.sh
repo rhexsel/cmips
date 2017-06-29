@@ -142,7 +142,7 @@ if [ ! -f .last_import ] ; then
    touch .last_import
 fi
 
-ghdl -m ${simulator} || errorCOMPILING
+ghdl -m --std=02 ${simulator} || errorCOMPILING
 
 mv ${simulator} ..
 

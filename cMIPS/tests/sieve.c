@@ -8,8 +8,6 @@
 #endif
 
 #define MAX   100
-#define FALSE (0==1)
-#define TRUE  !FALSE
 
 int p[MAX] = {0};
 

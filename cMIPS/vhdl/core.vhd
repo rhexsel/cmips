@@ -2395,8 +2395,10 @@ begin
          (tlb_excp_taken = '1') )
     then
       excp_code := ExcCode;             -- record new exception      
+    elsif ( (is_exception = exMFC0) and (MM_cop0_reg = cop0reg_CAUSE) ) then
+      excp_code := cop0code_NULL;       -- clear code when sw reads CAUSE
     else
-      excp_code := CAUSE(CAUSE_ExcCodehi downto CAUSE_ExcCodelo);  -- hold
+      excp_code := CAUSE(CAUSE_ExcCodeHi downto CAUSE_ExcCodeLo);  -- hold
     end if;
     
     if rst = '0' then

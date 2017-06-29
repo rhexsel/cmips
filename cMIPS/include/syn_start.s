@@ -21,6 +21,10 @@
         ##
 _start:	nop
 
+	##### not making use of TLB check this
+	j st_0
+	nop
+	
         # get physical page number for 2 pages at the bottom of RAM, for .data
         #  needed so systems without a page table will not break
         #  read TLB[4] and write it to TLB[2]
@@ -61,12 +65,18 @@ _start:	nop
         mtc0 $k0, c0_wired
 
 
+
         # initialize SP at top of RAM: RAM[1] - 16
-        li   $sp, ((x_DATA_BASE_ADDR + (2*4096)) - 16)
+st_0:	li   $sp, ((x_DATA_BASE_ADDR + (2*4096)) - 16)
 
         # set STATUS, cop0, hw interrupt IRQ7,IRQ6,IRQ5 enabled, user mode
-        li   $k0, 0x1000e011
+	la   $k1, c0_status_reset
+	ori  $k0, $k1, M_StatusIEn
         mtc0 $k0, c0_status
+
+	# reset: COUNTER stopped, use special interrVector, no interrupts
+	la   $k0, c0_cause_reset
+        mtc0 $k0, c0_cause
 	
         j main
         nop
@@ -78,8 +88,8 @@ exit:
 _exit:	la   $k0, HW_dsp7seg_addr  	# 7 segment display
 	li   $k1, 0x1300		# display .0.0, RED led
 	sw   $k1, 0($k0)		# write to 7 segment display
-        li   $k0, 0x10000010
-        mtc0 $k0, c0_status		# disable interrupts
+        li   $k0, 0x1000ff11		# 0x10000010
+        mtc0 $k0, c0_status		# enable all interrupts
 	nop
 	
 hexit:	j hexit	  # wait forever
@@ -167,9 +177,13 @@ h0100:	j    h0100			# wait forever
         .org x_EXCEPTION_0180,0
 _excp_0180:
 	la   $k0, HW_dsp7seg_addr  	# 7 segment display
-	mfc0 $k1, c0_cause
-	andi $k1, $k1, 0x07f		# display .7.7
+	# mfc0 $k1, c0_cause
+	# andi $k1, $k1, 0x07f		# display .7.7
+	li   $k1, 0x0377
 	sw   $k1, 0($k0)		# write to 7 segment display
+	j _excp_0200
+	nop
+	
 h0180:	j    h0180			# wait forever
 	nop
 
@@ -194,14 +208,12 @@ heret:	j    heret			# wait forever
         # declare all handlers here, these must be in file syn_handlers.s
         .extern countCompare  # IRQ7 = hwIRQ5, Cop0 counter
         .extern UARTinterr    # IRQ6 - hwIRQ4, see vhdl/tb_cMIPS.vhd
-        .extern extCounter    # IRQ5 - hwIRQ3, see vhdl/tb_cMIPS.vhd
-
-        .set M_CauseIM,0x0000e000   # keep bits 15..8 -> IM = IP
-        .set M_StatusIEn,0xe011     # user mode, enable all interrupts, EXL=0
+        .extern DMAinterr     # IRQ5 - hwIRQ3, see vhdl/tb_cMIPS.vhd
+        .extern extCounter    # IRQ4 - hwIRQ2, see vhdl/tb_cMIPS.vhd
 
         .set noreorder
 
-        .org x_EXCEPTION_0200,0     # exception vector_200, interrupt handlers
+        .org x_EXCEPTION_0200,0    # exception vector_200, interrupt handlers
         .ent _excp_0200
 _excp_0200:
         mfc0 $k0, c0_cause
@@ -209,30 +221,47 @@ _excp_0200:
         mfc0 $k1, c0_status
         and  $k0, $k0, $k1         # and mask with IM bits 
 
-        srl  $k0, $k0, 10          # keep only 3 MS bits of IP (irq7..5)
-        lui  $k1, %hi(handlers_tbl) # plus displacement in j-table of 8 bytes
+        srl  $k0, $k0, 12          # keep only 4 MS bits of IP (irq7..4)
+	sll  $k0, $k0,  3          # plus displacement in j-table of 8 bytes
+        lui  $k1, %hi(handlers_tbl)
         ori  $k1, $k1, %lo(handlers_tbl)
         add  $k1, $k1, $k0
         nop
         jr   $k1
         nop
 
-
         ## the code for each handler must repeat the exception return
         ##   sequence shown below in excp_0200ret.
 handlers_tbl:
-        j dismiss                  # no request: 000
+        j dismiss                  # no request: 0000
         nop
 
-        j extCounter               # lowest priority, IRQ5: 001
+        j extCounter               # lowest priority, IRQ4: 0001
         nop
 
-        j UARTinterr               # mid priority, IRQ6: 01x
+        j DMAinterr                # mid priority, IRQ5: 001x
+        nop
+        j DMAinterr
+        nop
+
+        j UARTinterr               # mid priority, IRQ6: 01xx
+        nop
+        j UARTinterr
+        nop
+        j UARTinterr
         nop
         j UARTinterr
         nop
 
-        j countCompare             # highest priority, IRQ7: 1xx
+        j countCompare             # highest priority, IRQ7: 1xxx
+        nop
+        j countCompare
+        nop
+        j countCompare
+        nop
+        j countCompare
+        nop
+        j countCompare
         nop
         j countCompare
         nop
@@ -241,14 +270,11 @@ handlers_tbl:
         j countCompare
         nop
 
-
+	
 dismiss: # No pending request, must have been noise
          #  do nothing and return
 
 _excp_0200ret:
-        #mfc0 $k0, c0_status        # Read STATUS register
-        #ori  $k0, $k0, M_StatusIEn #  and re-enable interrupts
-        #mtc0 $k0, c0_status        #  else keep as it was on int entry 
         eret                       # Return from interrupt
         nop
 
@@ -265,7 +291,7 @@ _excp_0200ret:
 	.org x_EXCEPTION_BFC0,0
 _excp_BFC0:
 	la   $k0, HW_dsp7seg_addr  	# 7 segment display
-	li   $k1, 0x0355		# display .5.5
+	li   $k1, 0x13ff		# display .f.f, BLUE
 	sw   $k1, 0($k0)		# write to 7 segment display
 hBFC0:	j    hBFC0			# wait forever
 	nop

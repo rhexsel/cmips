@@ -164,8 +164,8 @@ int mem2file(int numWds, int *src, int dst, int do_interrupt) {
 //=======================================================================
 // system statistics -- read system counters
 //=======================================================================
-void readStats(sStats *s) {
 #if 0
+void readStats(sStats *s) {
   int volatile *IO = (int *)IO_STATS_ADDR;
 
   s->dc_ref    = *(IO+0);
@@ -174,8 +174,8 @@ void readStats(sStats *s) {
   s->dc_flush  = *(IO+3);
   s->ic_ref    = *(IO+4);
   s->ic_hit    = *(IO+5);
-#endif
 }; //--------------------------------------------------------------------
+#endif
 
 
 //=======================================================================
@@ -382,9 +382,9 @@ int LCDset(int cmd) {
   *IO = cmd;
   cmips_delay(LCD_oper_delay);
 
-  s = *IO;
-  while ( (s & LCD_busy) != 0) { s = *IO; }; // still busy?
-  return(s);
+  // s = *IO;
+  while ( ((*IO) & LCD_busy) != 0) { cmips_delay(0); }; // s = *IO; }; // still busy?
+  return(*IO);
 }
 
 // write a "raw" character on the current position
@@ -423,7 +423,7 @@ void LCDbotLine(void) {
 void LCDgotoxy(int x, int y) {
    int address;
 
-   if(y != 1)
+   if (y != 1)
      address = LCD_LINE_TWO;
    else
      address = 0;

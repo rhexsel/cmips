@@ -7,9 +7,6 @@
 
 extern int _counter_val;
 
-#define FALSE (0==1)
-#define TRUE  (!FALSE)
-
 #define ACTIVE 1
 #define OFF    0
 

@@ -33,9 +33,6 @@ extern void PT_update(void *V_addr, int component, int new_value);
 extern  int TLB_purge(void *V_addr);
 static void print_str(char *);
 
-#define FALSE (0==1)
-#define TRUE  !FALSE
-
 #define MAX_RAM ( x_DATA_BASE_ADDR + (x_DATA_MEM_SZ / 2) )
 
 #define NUM_RAM_PAGES  ( (x_DATA_MEM_SZ / 2) / 4096 )
@@ -190,7 +187,7 @@ int main(void) {
   *walker = 0x77;
 
   // will never get here -- protection violation on the store
-  if ( *walker == 0x77 ) {    // this load is optimized away by gcc
+  if ( *walker == 0x77 ) {
     print( *walker );
     print_str("\tprot viol not ok\n");
   } else {
@@ -233,7 +230,7 @@ int main(void) {
   *walker = 0x66;
 
   // will never get here -- seg fault on the store
-  if ( *walker == 0x66 ) {    // this load is optimized away by gcc
+  if ( *walker == 0x66 ) {
     print( *walker );
     print_str("\tseg fault not ok\n");
   } else {
