@@ -24,6 +24,7 @@
 // these will abort the simulation when the fault is detected/handled
 #define PROT_VIOL 0
 #define SEG_FAULT 0
+#define MEM_SEC   0
 //-----------------------------------------------------------------------
 
 
@@ -235,6 +236,47 @@ int main(void) {
     print_str("\tseg fault not ok\n");
   } else {
     print_str("\tseg fault err\n");
+ }
+#endif
+
+
+
+#if MEM_SEC
+  //--------------------------------------------------------------------
+  // let's cause a segmentation fault with  a reference to a page which
+  //   is mapped but not in RAM; pretend it is in secondary memory 
+  // this will abort the simulation
+  //--------------------------------------------------------------------
+
+#define PG_MEM_SEC 12
+
+  // pick a page and mark int as in secondary memory
+  walker = (int *)(x_DATA_BASE_ADDR + PG_MEM_SEC*4096); // page not in RAM
+
+  // first, remove V_addr from the TLB, to ensure the PT will be searched
+  if ( TLB_purge((void *)walker) == 0 ) {
+    print_str("\tpurged\n");
+  } else {
+    print_str("\tTLB miss\n");
+  }
+
+  // change the PT element so it indicates range not in RAM but mapped
+  //   and in secondary memory
+  // TLB entryLo0 says mapping is invalid;  
+  // TLB-invalid exception will abort simulation for page not loaded in RAM
+  new_value =
+    (((x_DATA_BASE_ADDR + PG_MEM_SEC*4096)>>12) <<6) | 0b000101; // v=0
+  PT_update( (int *)walker, 0, new_value);
+  PT_update( (int *)walker, 1, 0x0a);          // U=M=0, W=1, X=0, S=10 = a
+
+  *walker = 0x55;
+
+  // will never get here -- seg fault on the store
+  if ( *walker == 0x55 ) {
+    print( *walker );
+    print_str("\tseg fault not in RAM not ok\n");
+  } else {
+    print_str("\tseg fault not in RAM err\n");
  }
 #endif
 

@@ -347,6 +347,15 @@ disableInterr:
 	.global _excp_0180ret
 	.global handle_Mod
 	.set noreorder
+
+	.equ TP_UNMAP,   0x0000
+	.equ TP_MAPPED,  0x0003  # mapped OR on sec-mem OR locked
+	.equ TP_SEC_MEM, 0x0002  # on sec-mem
+	.equ TP_LOCKED,  0x0003  # locked
+	.equ TP_WR_ABLE, 0x0008  # locked
+	.equ TP_USED,	0x0010	# page was referenced
+	.equ TP_MODIF,	0x0020	# page was modified (is dirty)
+	.equ TLB_DIRTY,	0x0004	# page was modified (is dirty)
 	
 	.ent handle_Mod
 handle_Mod:			# EntryHi points to offending TLB entry
@@ -362,45 +371,50 @@ handle_Mod:			# EntryHi points to offending TLB entry
 	beq  $a0, $zero, M_even
 	mfc0 $a0, c0_context
 
-M_odd:	addi $a2, $a0, 12	# address for odd entry
+M_odd:	addi $a2, $a0, 12	# address for odd entry (intLo1)
 	mfc0 $k0, c0_entrylo1
-	ori  $k0, $k0, 0x0004	# mark TLB entry as dirty/writable
+	ori  $k0, $k0, TLB_DIRTY # mark TLB entry as dirty/writable
 	j    M_test
 	mtc0 $k0, c0_entrylo1
 	
-M_even: addi $a2, $a0, 4	# address for even entry
+M_even: addi $a2, $a0, 4	# address for even entry (intLo0)
 	mfc0 $k0, c0_entrylo0
-	ori  $k0, $k0, 0x0004	# mark TLB entry as dirty/writable
+	ori  $k0, $k0, TLB_DIRTY # mark TLB entry as dirty/writable
 	mtc0 $k0, c0_entrylo0
 
-M_test:	lw   $a1, 0($a2)	# read PT[badVAddr]
+M_test:	lw   $a1, 0($a2)	# read PT[badVAddr].intLo{0,1}
 	mfc0 $k0, c0_badvaddr	# get faulting address
-	andi $a0, $a1, 0x0001	# check if page is mapped
+	andi $a0, $a1, TP_MAPPED	# check if page is mapped
+	nop
 	beq  $a0, $zero, M_seg_fault	# no, abort simulation
 	nop
 
-	andi $a0, $a1, 0x0008	# check if page is writable
+	andi $a0, $a1, TP_WR_ABLE	# check if page is writable
+	nop
 	beq  $a0, $zero, M_prot_viol	# no, abort simulation
 	nop
 
-	andi $a0, $a1, 0x0002	# check if page is in secondary memory
+	andi $a0, $a1, TP_SEC_MEM	# check if page is in secondary memory
+	nop
 	bne  $a0, $zero, M_sec_mem	# yes, abort simulation
 	nop
 
 	mfc0 $a0, c0_epc	# check if fault is on an instruction
+	nop
 	beq  $a0, $k0, M_prot_viol	# k0 is badVAddr, if so, abort
 	nop
 
-	ori  $a1, $a1, 0x0030	# mark PT entry as modified, used
+	ori  $a1, $a1, (TP_USED | TP_MODIF) # mark PT entry as modified, used
 	sw   $a1, 0($a2)
 
 	tlbwi			# write entry with dirty bit=1 back to TLB
 	
 	lw   $a0,  9*4($k1)	# restore saved registers and return
 	lw   $a1, 10*4($k1)
-	j    _excp_0180ret
 	lw   $a2, 11*4($k1)
-
+	j    _excp_0180ret
+	nop
+	
 M_seg_fault:	# print message and abort simulation
 	la   $k1, x_IO_BASE_ADDR
 	sw   $k0, 0($k1)
@@ -437,7 +451,7 @@ M_sec_mem:	# print message and abort simulation
 
 	#================================================================
 	# handle TLB Load exception: double-fault caused by a TLB miss
-	#   to the Page Table -- mapping pointing to PT is not on TLB
+	#   to the Page Table -- mapping which points to PT is not on TLB
 	#
 	# (a) fix the fault by (re)loading the mapping into TLB[4];
 	# (b) check permissions in PT entry and (maybe) kill the process.
@@ -483,6 +497,7 @@ handle_TLBL:			# EntryHi points to offending TLB entry
 	nop
 
 L_chks: andi $a0, $a0, 0x1000	# check if even or odd page
+	nop
 	beq  $a0, $zero, L_even
 	mfc0 $a0, c0_context
 
@@ -493,26 +508,30 @@ L_even: addi $a2, $a0, 4	# address for even intLo0 entry
 
 L_test:	lw   $a1, 0($a2)	# get intLo{0,1}
 	mfc0 $k0, c0_badvaddr	# get faulting address for printing
-	andi $a0, $a1, 0x0001	# check if page is mapped
+	andi $a0, $a1, TP_MAPPED # check if page is mapped
+	nop
 	beq  $a0, $zero, M_seg_fault	# no, abort simulation
 	nop
 
-	andi $a0, $a1, 0x0002	# check if page is in secondary memory
+	andi $a0, $a1, TP_SEC_MEM	# check if page is in secondary memory
+	nop
 	bne  $a0, $zero, M_sec_mem	# yes, abort simulation
 	nop
 
-	ori  $a1, $a1, 0x0010	# mark PT entry as used
+	ori  $a1, $a1, TP_USED	# mark PT entry as used
 	# sw   $a1, 0($a2)
 
 	# if this were handler_TLBS, now is the time to also mark the
 	#    PT entry as Modified
-	ori  $a1, $a1, 0x0028	# mark PT entry as writable and modified
+	# mark PT entry as used, writable and modified
+	ori  $a1, $a1, (TP_USED | TP_MODIF | TP_WR_ABLE)
 	sw   $a1, 0($a2)
 	
 L_ret:	lw   $a0,  9*4($k1)	# nothing else to do, return
 	lw   $a1, 10*4($k1)
-	j    _excp_0180ret
 	lw   $a2, 11*4($k1)
+	j    _excp_0180ret
+	nop
 
 	.end handle_TLBL
 	#----------------------------------------------------------------
@@ -536,6 +555,7 @@ TLB_purge:
 	nop
 	mfc0 $a0, c0_index	# check for hit
 	srl  $a0, $a0, 31	# keeo only MSbit
+	nop
 	bne  $a0, $zero, pu_miss # address not in TLB
 	move $v0, $a0		# V_addr not in TLB
 
@@ -736,7 +756,7 @@ _kmsg_sec_mem: 		.asciiz "\n\t04 - in secondary memory\n\n"
 	.section .rodata
         .align  2
 _kmsg_list:
-	.word _kmsg_interr,_kmsg_excep, _kmsg_prot_viol, _kmsg_seg_fault
+	.word _kmsg_interr, _kmsg_excep, _kmsg_prot_viol, _kmsg_seg_fault
 	.word _kmsg_sec_mem
 
 	##

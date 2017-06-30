@@ -461,21 +461,24 @@ PT_update:
 	
 	## ( ( (x_INST_BASE_ADDR + n*4096) >>12 )<<6 ) || 0b000011  d,v,g
 	##
-	## ROM mappings, intLo{01} = U=M=W=0, X=1, S=10 (or 00) = 6 (or 4)
+	## ROM mappings
+	##
+	## mapped pages:   intLo{01} = U=M=W=0, X=1, S=01 = 5
+	## UNmapped pages: intLo{01} = U=M=W=0, X=1, S=00 = 4
 	##
 _PT:	.org (_PT + (x_INST_BASE_ADDR >>13)*16)
 
 	# PT[0], ROM
 PTbase:	.word  ( (x_INST_BASE_ADDR +  0*4096) >>6) | 0b000011  
-	.word 0x00000006
+	.word 0x00000005
 	.word  ( (x_INST_BASE_ADDR +  1*4096) >>6) | 0b000011  
-	.word 0x00000006
+	.word 0x00000005
 
 	# PT[1]
 	.word  ( (x_INST_BASE_ADDR +  2*4096) >>6) | 0b000011  
-	.word 0x00000006
+	.word 0x00000005
 	.word  ( (x_INST_BASE_ADDR +  3*4096) >>6) | 0b000011  
-	.word 0x00000006
+	.word 0x00000005
 	
 	# PT[2] -- not mapped for simulation
 	.word  ( (x_INST_BASE_ADDR +  4*4096) >>6) | 0b000001  
@@ -513,11 +516,14 @@ PTbase:	.word  ( (x_INST_BASE_ADDR +  0*4096) >>6) | 0b000011
 	.word  ( (x_INST_BASE_ADDR + 15*4096) >>6) | 0b000001
 	.word 0x00000004
 
-	## all remaining ROM entries are invalid and unmapped
+	## remaining ROM entries are invalid and unmapped (0 filled by AS)
 	
 	
 	##
-	## RAM mappings, intLo{01} = U=M=0, W=1, X=0, S=10 (or 00) = a (or 8)
+	## RAM mappings
+	##
+	## mapped pages:   intLo{01} = U=M=0, W=1, X=0, S=01 = 9
+	## UNmapped pages: intLo{01} = U=M=0, W=1, X=0, S=00 = 8
 	##
 	.org (_PT + (x_DATA_BASE_ADDR >>13)*16)
 
@@ -525,54 +531,54 @@ PTbase:	.word  ( (x_INST_BASE_ADDR +  0*4096) >>6) | 0b000011
 	
 	# PT[ram+0], RAM
 	.word  ( (x_DATA_BASE_ADDR +  0*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 	.word  ( (x_DATA_BASE_ADDR +  1*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 
 	# PT[ram+1]
 	.word  ( (x_DATA_BASE_ADDR +  2*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 	.word  ( (x_DATA_BASE_ADDR +  3*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 	
 	# PT[ram+2]
 	.word  ( (x_DATA_BASE_ADDR +  4*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 	.word  ( (x_DATA_BASE_ADDR +  5*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 
 	# PT[ram+3]
 	.word  ( (x_DATA_BASE_ADDR +  6*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 	.word  ( (x_DATA_BASE_ADDR +  7*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 	
 	# PT[ram+4]
 	.word  ( (x_DATA_BASE_ADDR +  8*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 	.word  ( (x_DATA_BASE_ADDR +  9*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 
 	# PT[ram+5]
 	.word  ( (x_DATA_BASE_ADDR + 10*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 	.word  ( (x_DATA_BASE_ADDR + 11*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 	
 	# PT[ram+6]
 	.word  ( (x_DATA_BASE_ADDR + 12*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 	.word  ( (x_DATA_BASE_ADDR + 13*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 
 	# PT[ram+7]
 	.word  ( (x_DATA_BASE_ADDR + 14*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 	.word  ( (x_DATA_BASE_ADDR + 15*4096) >>6) | 0b000111  
-	.word 0x0000000a
+	.word 0x00000009
 
 	
-	## all remaining RAM entries are invalid and unmapped
+	## remaining RAM entries are invalid and unmapped (0 filled by AS)
 	
 _endPT:
 
