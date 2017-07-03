@@ -470,12 +470,21 @@ handle_TLBL:			# EntryHi points to offending TLB entry
 	sw   $a2, 11*4($k1)
 
 	mfc0 $a0, c0_badvaddr
+
+	# check is fault is to address below the PT
 	la   $a1, (_PT + (x_INST_BASE_ADDR >>13)*16)
 
 	slt  $a2, $a0, $a1	# a2 <- (badVAddr <= PageTable)
 	bne  $a2, $zero, L_chks	#   fault is not to PageTable
 	nop
 
+	# check is fault is to address above the PT
+	la   $a1, ( (_PT+2*4096) + (x_INST_BASE_ADDR >>13)*16)
+
+	slt  $a2, $a1, $a0	# a2 <- (badVAddr > PageTable)
+	bne  $a2, $zero, L_chks	#   fault is not to PageTable
+	nop
+	
 	# this is same code as in start.s
         # get physical page number for two pages at the bottom of PageTable
         la    $a0, ( MIDDLE_RAM >>13 )<<13

@@ -579,6 +579,7 @@ PTbase:	.word  ( (x_INST_BASE_ADDR +  0*4096) >>6) | 0b000011
 
 	
 	## remaining RAM entries are invalid and unmapped (0 filled by AS)
+	# .space 15*4096, 0
 	
 _endPT:
 

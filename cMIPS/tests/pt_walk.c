@@ -219,6 +219,7 @@ int main(void) {
 
   // add a new PT element for an address range with RAM but UN-mapped
   //   this address is above the page table
+
   new_value =
     (((x_DATA_BASE_ADDR + PG_UNMAPPED*4096)>>12) <<6) | 0b000011; // d=0
   PT_update( (int *)walker, 0, new_value);
