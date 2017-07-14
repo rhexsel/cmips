@@ -1429,8 +1429,11 @@ begin
 
 
   EX_wreg <= EX_wreg_pre                  -- movz,movn, move/DO_NOT move
-             or ( BOOL2SL(nullify) and not(MM_is_delayslot) );
-                                          -- abort wr if prev excep in EX
+             -- abort wr if previous exception in EX
+             or ( BOOL2SL(nullify) and not(MM_is_delayslot) )
+             -- abort wr if TLB exception in EX (nullify=1 on next cycle)
+             or ( BOOL2SL( tlb_exception and tlb_stage_mm ) );
+
 
   EX_wrmem_cond <= EX_wrmem
                    or BOOL2SL(abort_ref)  -- abort write if exception in MEM
@@ -2104,7 +2107,7 @@ begin
         i_epc_update    := '0';
         i_nullify       := TRUE;            -- nullify instructions in IF,RF,EX
         exception_taken <= '1';        
-
+        
       when exTLBrefillRD | exTLBrefillWR =>
         case is_exception is
           when exTLBrefillRD =>
@@ -2126,7 +2129,7 @@ begin
         i_epc_update := '0';
         i_nullify    := TRUE;           -- nullify instructions in IF,RF,EX
         exception_taken <= '1';
-        
+
       when exTLBdblFaultIF | exTLBinvalIF  =>
         ExcCode <= cop0code_TLBL;
         if RF_is_delayslot = '1' then   -- instr is in delay slot
@@ -2141,7 +2144,6 @@ begin
         i_update_r   := cop0reg_STATUS;
         i_epc_update := '0';
         i_nullify    := TRUE;           -- nullify instructions in IF,RF,EX
-
 
       when exTLBdblFaultRD | exTLBdblFaultWR |
            exTLBinvalRD    | exTLBinvalWR    | exTLBmod =>
@@ -2166,8 +2168,7 @@ begin
         i_update_r   := cop0reg_STATUS;
         i_epc_update := '0';
         i_nullify    := TRUE;          -- nullify instructions in IF,RF,EX
-
-
+        
       when exIBE | exDBE =>             -- BUS ERROR
         if is_exception = exIBE then
           ExcCode <= cop0code_IBE;

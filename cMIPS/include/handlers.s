@@ -192,6 +192,18 @@ _dma_saves:  .space 4*4		# area to save up to 4 registers
 	.ent    DMAinterr
 
 DMAinterr:
+	#----------------------------------------------------------------
+	# While you are developing the complete handler, uncomment the
+	#   line below
+	#
+	# .include "../tests/handlerDMA.s"
+	#
+	# Your new handler should be self-contained and do the
+	#   return-from-exception (eret).
+	#
+	# Use the code below as a template.
+	#----------------------------------------------------------------
+
 	lui   $k0, %hi(HW_dma_addr)
 	ori   $k0, $k0, %lo(HW_dma_addr)
 	addiu $k1, $zero, 1 		# Clear interrupt request
@@ -474,16 +486,16 @@ handle_TLBL:			# EntryHi points to offending TLB entry
 	# check is fault is to address below the PT
 	la   $a1, (_PT + (x_INST_BASE_ADDR >>13)*16)
 
-	slt  $a2, $a0, $a1	# a2 <- (badVAddr <= PageTable)
+	slt  $a2, $a0, $a1	# a2 <- (badVAddr <= PageTable_bottom)
 	bne  $a2, $zero, L_chks	#   fault is not to PageTable
 	nop
 
 	# check is fault is to address above the PT
-	la   $a1, ( (_PT+2*4096) + (x_INST_BASE_ADDR >>13)*16)
+	# la   $a1, ( (_PT+2*4096) + (x_INST_BASE_ADDR >>13)*16)
 
-	slt  $a2, $a1, $a0	# a2 <- (badVAddr > PageTable)
-	bne  $a2, $zero, L_chks	#   fault is not to PageTable
-	nop
+	# slt  $a2, $a1, $a0	# a2 <- (badVAddr > PageTable_top)
+	# bne  $a2, $zero, L_chks	#   fault is not to PageTable
+	# nop
 	
 	# this is same code as in start.s
         # get physical page number for two pages at the bottom of PageTable

@@ -1,20 +1,20 @@
 [*]
 [*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
-[*] Mon Jul  3 13:27:46 2017
+[*] Fri Jul 14 21:22:27 2017
 [*]
-[dumpfile] "/home/roberto/Downloads/cMIPS.vcd"
-[dumpfile_mtime] "Mon Jul  3 13:24:34 2017"
-[dumpfile_size] 188974060
+[dumpfile] "/home/roberto/cMIPS/cMIPS.vcd"
+[dumpfile_mtime] "Fri Jul 14 21:09:31 2017"
+[dumpfile_size] 248554441
 [savefile] "/home/roberto/cMIPS/disk.sav"
-[timestart] 0
-[size] 1354 1018
+[timestart] 25853900000
+[size] 1308 1018
 [pos] -1 -1
-*-30.000000 1845000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-26.000000 25931700000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] u_core.u_alu.
 [sst_width] 210
 [signals_width] 214
 [sst_expanded] 1
-[sst_vpaned_height] 331
+[sst_vpaned_height] 332
 @28
 clk
 @200
@@ -24,9 +24,7 @@ u_core.pc[31:0]
 @28
 u_core.interrupt_taken
 u_core.exception_taken
-@29
 u_core.tlb_excp_taken
-@28
 u_core.annul_twice
 @200
 -    decode, reg fetch
@@ -35,10 +33,10 @@ u_core.rf_instruction[31:0]
 @200
 -    exec
 @22
-u_core.alu_inp_a[31:0]
-u_core.alu_inp_b[31:0]
 u_core.result[31:0]
 u_core.v_addr[31:0]
+@28
+u_core.ex_aval
 @200
 -   COP-0
 @24
@@ -47,17 +45,20 @@ u_core.exccode[4:0]
 u_core.cause[31:0]
 u_core.status[31:0]
 u_core.epc[31:0]
+u_core.badvaddr[31:0]
 @200
 -    memory
 @28
 u_ram.byte_sel[3:0]
 @22
-u_ram.data_inp[31:0]
-u_ram.data_out[31:0]
-u_ram.addr[31:0]
+cpu_data[31:0]
+cpu_data_inp[31:0]
+[color] 2
+u_core.mm_addr[31:0]
 @28
 [color] 2
-u_ram.sel
+u_core.mm_aval
+[color] 2
 u_ram.wr
 @200
 -    write-back
@@ -84,6 +85,7 @@ u_disk.data_inp[31:0]
 u_disk.s_src
 @22
 u_disk.src[31:0]
+u_disk.dst[31:0]
 @28
 u_disk.s_dst
 @24

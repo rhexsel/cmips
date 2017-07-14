@@ -130,7 +130,7 @@ _start:
 	la   $sp, (MIDDLE_RAM - 16)
 
 	
-	# set STATUS, c0, all hw+sw interrupts enabled, user mode
+	# set STATUS, c0, all hw+sw interrupts enabled, normal_level
         li   $k0, c0_status_normal
         mtc0 $k0, c0_status
 	ehb
@@ -522,8 +522,9 @@ PTbase:	.word  ( (x_INST_BASE_ADDR +  0*4096) >>6) | 0b000011
 	##
 	## RAM mappings
 	##
-	## mapped pages:   intLo{01} = U=M=0, W=1, X=0, S=01 = 9
-	## UNmapped pages: intLo{01} = U=M=0, W=1, X=0, S=00 = 8
+	## mapped pages:       intLo{01} = U=M=0, W=1, X=0, S=01 = 9
+	## UNmapped pages:     intLo{01} = U=M=0, W=1, X=0, S=00 = 8
+	## mapped pages, disk: intLo{01} = U=M=0, W=1, X=0, S=10 = a
 	##
 	.org (_PT + (x_DATA_BASE_ADDR >>13)*16)
 
@@ -566,10 +567,10 @@ PTbase:	.word  ( (x_INST_BASE_ADDR +  0*4096) >>6) | 0b000011
 	.word 0x00000009
 	
 	# PT[ram+6]
-	.word  ( (x_DATA_BASE_ADDR + 12*4096) >>6) | 0b000111  
-	.word 0x00000009
-	.word  ( (x_DATA_BASE_ADDR + 13*4096) >>6) | 0b000111  
-	.word 0x00000009
+	.word  ( (x_DATA_BASE_ADDR + 12*4096) >>6) | 0b000111   # 000001
+	.word 0x00000009   # a
+	.word  ( (x_DATA_BASE_ADDR + 13*4096) >>6) | 0b000111   # 000001
+	.word 0x00000009   # a
 
 	# PT[ram+7]
 	.word  ( (x_DATA_BASE_ADDR + 14*4096) >>6) | 0b000111  
@@ -579,7 +580,7 @@ PTbase:	.word  ( (x_INST_BASE_ADDR +  0*4096) >>6) | 0b000011
 
 	
 	## remaining RAM entries are invalid and unmapped (0 filled by AS)
-	# .space 15*4096, 0
+	# .space (5*4096 - 8*16), 0
 	
 _endPT:
 
