@@ -17,14 +17,14 @@
 
 //-----------------------------------------------------------------------
 // decide on the tests to run
-#define WALK_THE_PT  1
+#define WALK_THE_PT  0
 #define TLB_MODIFIED 0
 #define DOUBLE_FAULT 0
 
 // these will abort the simulation when the fault is detected/handled
 #define PROT_VIOL 0
 #define SEG_FAULT 0
-#define MEM_SEC   0
+#define MEM_SEC   1
 //-----------------------------------------------------------------------
 
 
@@ -49,8 +49,10 @@ int main(void) {
 #if WALK_THE_PT
   //-----------------------------------------------------------------
   // write to the middle of all datapages
-  //   this will cause some TLB refill exceptions, which should be
-  //   handled smoothly by the handler at excp_0000 (include/start/s)
+  //   this will cause *some* TLB refill exceptions, which should be
+  //   handled smoothly by the handler at excp_0000 (include/start/s).
+  // Some references will cause TLB misses, others will be be hits
+  //   because some mappings are kept in the TLB (VPN2 = PPN0 + PPN1).
   //-----------------------------------------------------------------
   walker = (int *)(x_DATA_BASE_ADDR + 1024);
 
@@ -123,12 +125,13 @@ int main(void) {
   // a double-fault:
   //
   // (1) on the 1st reference, TLB-refill does not find a mapping for
-  //     the PT on the TLB; this causes a TLBL (load) exception;
-  // (2) routine handle_TLBL writes a new mapping on the PT, refills
-  //     the TLB, then retries the reference;
+  //     the PT on the TLB; this causes a TLBload exception;
+  // (2) the routine handle_TLBL prepares a new mapping for the PT,
+  //     refills the TLB, then retries the reference, mapping for the
+  //     PT is now on the TLB;
   // (3) the page referenced is not on the TLB, so there is another
-  //     TLB-refill, which loads the mapping, the store is retried
-  //     and succeeds.
+  //     TLBrefill, which loads the mapping, the store is retried
+  //     and then succeeds.
   //--------------------------------------------------------------------
 
   // remove the TLB entry for datum to be referenced
@@ -168,6 +171,13 @@ int main(void) {
   //----------------------------------------------------------------------
   // let's cause a protection violation -- write to a write-protected page
   //   this will abort the simulation
+  //  
+  // (1) remove the VPN2 from the TLB to make sure the PT is searched;
+  // (2) change the mapping on the PT, make it write-protected;
+  // (3) reference will cause a TLBrefill that loads the write-protected
+  //     mapping on the TLB;
+  // (4) when the sw is retried, a TLBmodified is raised, and that
+  //     aborts execution because of the protection violation.
   //----------------------------------------------------------------------
 
   walker = (int *)(x_DATA_BASE_ADDR + PG_NUM*4096);
@@ -185,6 +195,7 @@ int main(void) {
   new_value = 0x00000001;                          // NOT-writable, mapped
   PT_update( (int *)walker, 1, new_value);
 
+  // this causes a TLBrefill then a TLBmodified exception
   *walker = 0x77;
 
   // will never get here -- protection violation on the store
@@ -203,6 +214,19 @@ int main(void) {
   //-----------------------------------------------------------------
   // let's cause a segmentation fault -- reference to page not mapped
   //   this will abort the simulation
+  //
+  // trick: use a write-protected PT-entry_&_TLB-entry to force a
+  //        check on the mapping state of the page.
+  //
+  // (1) pick a page *above the PT*, which is surely unmapped, and
+  //     remove the VPN2 from the TLB to make sure the PT is searched;
+  // (2) create a PT mapping for that page, mark it as unmapped and
+  //     write-protected;
+  // (3) reference will cause a TLBrefill that loads the write-protected
+  //     mapping on the TLB;
+  // (4) when the sw is retried, a TLBmodified is raised, and that
+  //     checks the page status on the PT and aborts execution
+  //     because the page is unmapped.
   //-----------------------------------------------------------------
 
 #define PG_UNMAPPED 20
@@ -229,6 +253,7 @@ int main(void) {
   PT_update( (int *)walker, 2, new_value);
   PT_update( (int *)walker, 3, 0);              // mark as unmapped
 
+  // this causes a TLBrefill then a TLBstore exception
   *walker = 0x66;
 
   // will never get here -- seg fault on the store
@@ -245,8 +270,21 @@ int main(void) {
 #if MEM_SEC
   //--------------------------------------------------------------------
   // let's cause a segmentation fault with  a reference to a page which
-  //   is mapped but not in RAM; pretend it is in secondary memory 
-  // this will abort the simulation
+  //   is mapped but not in RAM; let us pretend it is in secondary
+  //   memory and this will abort the simulation.
+  //
+  // trick: use a write-protected PT-entry_&_TLB-entry to force a
+  //        check on the mapping state of the page.
+  //
+  // (1) pick a page and remove the VPN2 from the TLB to make sure
+  //     the PT is searched;
+  // (2) create a PT mapping for that page, mark it as mapped and
+  //     in secondary storage, entryLo0 marked as invalid;
+  // (3) reference will cause a TLBrefill that loads the invalid
+  //     mapping on the TLB;
+  // (4) when the sw is retried, a TLBstore is raised, and that
+  //     checks the page status on the PT and aborts execution
+  //     because the page is mapped but not in RAM.
   //--------------------------------------------------------------------
 
 #define PG_MEM_SEC 12
@@ -261,8 +299,8 @@ int main(void) {
     print_str("\tTLB miss\n");
   }
 
-  // change the PT element so it indicates range not in RAM but mapped
-  //   and in secondary memory
+  // change the PT element so it indicates page is not in RAM but mapped
+  //   and sitting on secondary memory;
   // TLB entryLo0 says mapping is invalid;  
   // TLB-invalid exception will abort simulation for page not loaded in RAM
   new_value =
@@ -270,6 +308,7 @@ int main(void) {
   PT_update( (int *)walker, 0, new_value);
   PT_update( (int *)walker, 1, 0x0a);          // U=M=0, W=1, X=0, S=10 = a
 
+  // this causes a TLBrefill then a TLBstore exception
   *walker = 0x55;
 
   // will never get here -- seg fault on the store
