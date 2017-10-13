@@ -89,19 +89,5 @@ extern int  SWget(void);
 #define l_BLUE  0x1
 
 
-#if 0
-// struct to access the cache system statistics "peripheral"
-typedef struct sStats {
-  int dc_ref;      // data cache references
-  int dc_rd_hit;   // data cache read-hits
-  int dc_wr_hit;   // data cache write-hits
-  int dc_flush;    // data cache (write-back) flushes of dirty blocks
-  int ic_ref;      // instruction cache references
-  int ic_hit;      // instruction cache hits
-} sStats;
-
-extern void readStats(sStats *);
-#endif
-
 #define FALSE (0==1)
 #define TRUE  (0==0)

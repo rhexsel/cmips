@@ -165,6 +165,16 @@ int mem2file(int numWds, int *src, int dst, int do_interrupt) {
 // system statistics -- read system counters
 //=======================================================================
 #if 0
+// struct to access the cache system statistics "peripheral"
+typedef struct sStats {
+  int dc_ref;      // data cache references
+  int dc_rd_hit;   // data cache read-hits
+  int dc_wr_hit;   // data cache write-hits
+  int dc_flush;    // data cache (write-back) flushes of dirty blocks
+  int ic_ref;      // instruction cache references
+  int ic_hit;      // instruction cache hits
+} sStats;
+
 void readStats(sStats *s) {
   int volatile *IO = (int *)IO_STATS_ADDR;
 
