@@ -1,0 +1,93 @@
+[*]
+[*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
+[*] Wed May  2 18:57:08 2018
+[*]
+[dumpfile] "/home/prof/roberto/cmips/cMIPS/cMIPS.vcd"
+[dumpfile_mtime] "Wed May  2 18:38:37 2018"
+[dumpfile_size] 25500749
+[savefile] "/home/prof/roberto/cmips/cMIPS/count.sav"
+[timestart] 7190000000
+[size] 1079 712
+[pos] 351 246
+*-31.000000 10500000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] u_core.
+[treeopen] u_core.u_alu.
+[sst_width] 210
+[signals_width] 208
+[sst_expanded] 1
+[sst_vpaned_height] 233
+@28
+clk
+@200
+-    fetch
+@22
+u_core.pc[31:0]
+@28
+[color] 2
+u_core.excp_pcsel[2:0]
+[color] 2
+u_core.annul_twice
+[color] 2
+u_core.interrupt
+[color] 2
+u_core.interrupt_taken
+@200
+-    decode, reg fetch
+@22
+u_core.rf_instruction[31:0]
+@24
+[color] 2
+u_core.exception_dec
+@200
+-    exec
+@22
+u_core.alu_inp_a[31:0]
+u_core.alu_inp_b[31:0]
+[color] 4
+u_core.result[31:0]
+@200
+-   COP-0
+@24
+[color] 2
+u_core.exccode[4:0]
+@22
+[color] 5
+u_core.cause[31:0]
+u_core.status[31:0]
+[color] 6
+u_core.epc[31:0]
+@28
+[color] 2
+u_core.int_req[5:0]
+@200
+-    memory
+@28
+u_data_addr_dec.cpu_d_aval
+@22
+u_core.data_inp[31:0]
+u_core.data_out[31:0]
+[color] 4
+d_addr[31:0]
+@28
+wr
+@200
+-    write-back
+@22
+[color] 2
+u_core.wb_cop0_val[31:0]
+@28
+u_core.wb_wreg
+@24
+u_core.wb_a_c[4:0]
+@22
+u_core.wb_c[31:0]
+@200
+-  counter
+@28
+[color] 2
+counter_irq
+@22
+[color] 2
+u_interrupt_counter.q[29:0]
+[pattern_trace] 1
+[pattern_trace] 0
