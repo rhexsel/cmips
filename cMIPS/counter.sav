@@ -1,15 +1,15 @@
 [*]
-[*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
-[*] Wed May  2 18:57:08 2018
+[*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
+[*] Wed May  2 21:37:11 2018
 [*]
-[dumpfile] "/home/prof/roberto/cmips/cMIPS/cMIPS.vcd"
-[dumpfile_mtime] "Wed May  2 18:38:37 2018"
-[dumpfile_size] 25500749
-[savefile] "/home/prof/roberto/cmips/cMIPS/count.sav"
-[timestart] 7190000000
-[size] 1079 712
-[pos] 351 246
-*-31.000000 10500000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[dumpfile] "/home/roberto/cMIPS/cMIPS.vcd"
+[dumpfile_mtime] "Wed May  2 21:36:30 2018"
+[dumpfile_size] 26019893
+[savefile] "/home/roberto/cMIPS/counter.sav"
+[timestart] 2420000000
+[size] 1218 712
+[pos] -1 -1
+*-32.000000 10500000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] u_core.
 [treeopen] u_core.u_alu.
 [sst_width] 210
@@ -35,9 +35,6 @@ u_core.interrupt_taken
 -    decode, reg fetch
 @22
 u_core.rf_instruction[31:0]
-@24
-[color] 2
-u_core.exception_dec
 @200
 -    exec
 @22
