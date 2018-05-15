@@ -40,7 +40,7 @@ int main(void) {  // receive a string through the UART serial interface
   ctrl.speed = SPEED;
   uart->ctl  = ctrl; // initizlize UART
 
-  // handler sets flag=[U_FLAg] to 1 after new character is received;
+  // handler sets flag=[U_FLAG] to 1 after new character is received;
   // this program resets the flag on fetching a new character from buffer
   bfr[U_FLAG] = 0;      //   reset flag  
 
@@ -56,13 +56,16 @@ int main(void) {  // receive a string through the UART serial interface
   do {
     while ( (c = (char)bfr[U_FLAG]) == 0 )  // check flag in Ud[]
       delay_cycle(1);                       // nothing new, wait
-    c = (char)bfr[U_DATA];  // get new character
-    bfr[U_FLAG] = 0;        //   and reset flag
-    if (c != EOT) 
-      to_stdout( c );       //   and print new char
+
+    c = (char)bfr[U_DATA];   // get new character
+    bfr[U_FLAG] = 0;         //   and reset flag
+
+    if (c != (char)EOT) 
+      to_stdout( c );        //   and print new char
     else
-      to_stdout( '\n' );    //   and print new-line
-  } while (c != EOT);       // end of transmission?
+      to_stdout( '\n' );     //   and print new-line
+
+  } while (c != (char)EOT);  // end of transmission?
 
   return c;             // so compiler won't optimize away the last loop
 

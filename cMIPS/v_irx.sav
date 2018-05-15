@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.37 (w)1999-2012 BSI
-[*] Thu Jun  8 13:30:45 2017
+[*] Tue May 15 01:28:11 2018
 [*]
 [dumpfile] "/home/roberto/cMIPS/cMIPS.vcd"
-[dumpfile_mtime] "Thu Jun  8 13:24:40 2017"
-[dumpfile_size] 24883842
+[dumpfile_mtime] "Tue May 15 01:27:40 2018"
+[dumpfile_size] 20980403
 [savefile] "/home/roberto/cMIPS/v_irx.sav"
-[timestart] 0
+[timestart] 8480000000
 [size] 1447 990
 [pos] -1 -1
-*-32.114582 6380000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-33.114582 53533000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] u_simple_uart.
 [sst_width] 210
 [signals_width] 217
@@ -56,8 +56,6 @@ cpu_d_aval
 u_core.mm_wrmem
 @200
 -    write-back
-@24
-u_core.wb_muxc[2:0]
 @28
 u_core.wb_wreg
 @24
@@ -67,27 +65,35 @@ u_core.wb_c[31:0]
 @200
 -  UART
 @28
+[color] 2
 u_simple_uart.u_uart.s_stat
 @22
+[color] 2
 u_simple_uart.u_uart.status[7:0]
+[color] 3
 u_simple_uart.u_uart.ctrl[7:0]
 @28
+[color] 7
 u_simple_uart.u_uart.s_rx
+@820
+[color] 7
+u_simple_uart.u_uart.received[7:0]
 @22
+[color] 7
 u_simple_uart.u_uart.received[7:0]
 @28
+[color] 5
 u_simple_uart.u_uart.s_tx
 @22
+[color] 5
 u_simple_uart.u_uart.txreg[7:0]
 @28
 [color] 3
 u_simple_uart.u_uart.s_intwr
 [color] 3
 u_simple_uart.u_uart.interr[1:0]
-@29
 [color] 1
 u_simple_uart.u_uart.irq_all
-@28
 [color] 5
 u_simple_uart.u_uart.rx_done
 [color] 5
@@ -96,16 +102,20 @@ u_simple_uart.u_uart.interr_rx_full
 u_simple_uart.u_uart.interr_tx_empty
 @200
 -  reception
-@28
+@29
+[color] 4
 u_simple_uart.u_uart.rxclk
+@28
+[color] 7
 u_simple_uart.u_uart.rxdat
+[color] 5
 u_simple_uart.u_uart.txdat
+[color] 4
 u_simple_uart.u_uart.txclk
 @200
 -  REMOTE (fake) UART
 @820
-u_uart_remota.recv[7:0]
-@22
+[color] 5
 u_uart_remota.recv[7:0]
 [pattern_trace] 1
 [pattern_trace] 0
