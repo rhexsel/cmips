@@ -5,7 +5,7 @@
 
 # to compile GCC, these three libraries may have to be fetched:
 
-wget http://www.mpfr.org/mpfr-current/mpfr-3.1.5.tar.gz
+wget http://www.mpfr.org/mpfr-3.1.5/mpfr-3.1.5.tar.gz
 wget ftp://ftp.gnu.org/gnu/mpc/mpc-1.0.3.tar.gz
 wget ftp://ftp.gmplib.org/pub/gmp/gmp-6.1.2.tar.bz2
 
