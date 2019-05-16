@@ -1,50 +1,37 @@
 ###
 ### this file in NOT a shell script,
-### yet it was written to make it easy for cutting-n-pasting with the mouse
+### yet it was written to make it easy for cutting-n-pasting to the shell
 ###
 
-# to compile GCC, these three libraries may have to be fetched:
+# fetch all the auxiliary programs -- this assumes an Ubuntu installation
 
-wget http://www.mpfr.org/mpfr-3.1.5/mpfr-3.1.5.tar.gz
-wget ftp://ftp.gnu.org/gnu/mpc/mpc-1.0.3.tar.gz
-wget ftp://ftp.gmplib.org/pub/gmp/gmp-6.1.2.tar.bz2
-
-# it is (very) likely that new(er) versions have been released; please
-# fetch the new(est) versions.
-
-# and, according to instructions in 
-#   http://gcc.gnu.org/install/prerequisites.html
-# after you downloaded and expanded the GCC sources, expand the three
-# tarballs into the directory with GCC sources, change their
-# directory names to mpfr mpc gmp (removing the version suffixes);
-# then these libraries will be automagically compiled as part of GCC.
-
-# OTOH, if you are very lucky, the libraries installed by aptitude will do...
-
-# fetch all the auxiliary programs -- this assumes a Debian installation
-aptitude install make flex bison libgmp-dev libmpfr-dev libmpc-dev g++
+aptitude install make flex bison gcc g++
 
 # clean up any aliases/function replacements for /bin/ls
+
 unset ls
 
 # make sure the installed files are read-exec by all
+
 umask 022
 
-# check the latest version of GCC in http://ftp.gnu.org/gnu/gcc/
+# fetch binutils and gcc
 # check the latest version of binutils in http://ftp.gnu.org/gnu/binutils
+# check the latest version of GCC in http://ftp.gnu.org/gnu/gcc/
 
-BINUTILS=binutils-2.25
-COMPILER=gcc-5.1.0
+BINUTILS=binutils-2.32
+COMPILER=gcc-7.4.0
 
 wget -c http://ftp.gnu.org/gnu/binutils/${BINUTILS}.tar.bz2
 wget -c http://ftp.gnu.org/gnu/gcc/${COMPILER}/${COMPILER}.tar.gz
 
 # the cross-compiler will be installed in /opt/cross so it does not,
 # in any way, conflicts with the native GCC or binutils.
-
+#
 # set the installation pathname as PREFIX so that {bin,lib,man} are put there
 #   make sure you have write permission to /opt/cross,
 #   else perform the "make install" steps as root (with umask 022)
+
 export PREFIX=/opt/cross/
 export TARGET=mips
 
@@ -60,27 +47,26 @@ make
 make install
 cd ..
 
-## build and install GCC (takes rather more than a few minutes)
+## build and install GCC (takes several (>30)  minutes)
 
 tar -xvzf ${COMPILER}.tar.gz
 cd ${COMPILER}
 
-# you may want/need to expand the libraries' tarballs at this point,
-#  by doing
-#  [[ do not copy these commands unless versions are same as shown below ]]
-#    tar -xvjf ../gmp-6.1.2.tar.bz2 
-#    mv gmp-6.1.2/ gmp
-#    tar -xvzf ../mpc-1.0.3.tar.gz
-#    mv mpc-1.0.3/ mpc
-#    tar -xxvf ../mpfr-3.1.5.tar.xz
-#    mv mpfr-3.1.5/ mpfr
+# run the script below to fetch the ancillary packages
+
+contrib/download_prerequisites --no-graphite
+
+# configure the installation and build the compiler
 
 export PATH=$PATH:$PREFIX/bin
 ./configure --target=$TARGET --prefix=$PREFIX --disable-nls \
+     --disable-threads --disable-tls --disable-libsanitizer \
+     --disable-libquadmath --disable-lto \
      --enable-languages=c,c++ --without-headers
 make all-gcc
 
 # do the next one as root?  su ; umask 022 ; make install-gcc ; exit
+
 make install-gcc
 cd ..
 
@@ -88,6 +74,7 @@ cd ..
 # once GCC and Binutils are compiled and installed, all that is needed is
 #  for you to add the new path to your PATH, preferably in your ~/.bashrc
 #  do not forget to substitute ${PREFIX} by /opt/cross in ~/.bashrc
+
 export PATH=${PATH}:${PREFIX}/bin
 export MANPATH=${MANPATH}:${PREFIX}/man
 
@@ -95,6 +82,24 @@ export MANPATH=${MANPATH}:${PREFIX}/man
 # and that ends the cross-compiler installation.
 
 
+
+#
+# To install ghdl on Ubuntu, use the ppa (thanks Todt):
+#   https://launchpad.net/~gekkio/+archive/ubuntu/ghdl
+#
+# the compiler should work on Ubuntu cosmic, bionic and  LinuxMint 19.1
+
+sudo add-apt-repository ppa:gekkio/ghdl
+sudo apt-get update
+sudo apt-get install ghdl
+
+
+
+
+
+#    This is very old, but may be useful.  After 20 years, I abandoned
+#    Debian because installing  ghdl was a real pain.
+#
 # You may also want/need to install GHDL on your machine.  As of July,
 #  2015, there is no official Debian package.  You must download the
 #  unofficial package from Sourceforge at:
