@@ -55,7 +55,7 @@ begin
         this := LF;
       end if;
 
-      data <= x"000000" & std_logic_vector(to_signed(character'pos(this),8));
+      data <= x"000000" & std_logic_vector(to_unsigned(character'pos(this),8));
 
       assert TRUE report "STD_IOrd= " & this;
 
@@ -273,9 +273,9 @@ begin
         if wr = '1' then
           if not endfile(input_file) then
             read( input_file, datum );
-            data <= std_logic_vector(to_signed(datum, 32));
+            data <= std_logic_vector(to_unsigned(datum, 32));
             status <= x"00000000";        -- NOT_EndOfFile
-            value := std_logic_vector(to_signed(datum, 32));   -- DEBUG
+            value := std_logic_vector(to_unsigned(datum, 32));   -- DEBUG
             assert TRUE report "IOrd[" & SLV32HEX(addr) &"]:"& SLV32HEX(value);
           else
             status <= x"00000001";        -- EndOfFile
@@ -514,7 +514,7 @@ begin
       end case;
     end if;
     
-    data <= std_logic_vector(to_signed(i_c,32));
+    data <= std_logic_vector(to_unsigned(i_c,32));
 
   end process U_SYNC_OUTPUT;
 
@@ -622,7 +622,7 @@ entity read_keys is
   constant DEB_BITS : integer := 16;    -- debounce counter width
   constant CNT_MAX : integer := (2**DEB_BITS - 1);
   constant x_DEB_CYCLES : std_logic_vector(DEB_BITS-1 downto 0)
-    := std_logic_vector(to_signed((CNT_MAX - DEB_CYCLES),DEB_BITS));
+    := std_logic_vector(to_unsigned((CNT_MAX - DEB_CYCLES),DEB_BITS));
   constant NUM_BITS : integer := 4;     -- four bits to hold key number
   subtype c_width is std_logic_vector(NUM_BITS - 1 downto 0);
   constant NO_KEY : c_width := (others => '0');

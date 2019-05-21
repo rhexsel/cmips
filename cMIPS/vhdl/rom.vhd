@@ -238,21 +238,23 @@ begin  -- behavioral
       
     else                                -- normal operation
 
-      u_addr := unsigned(addr((2+(INST_ADDRS_BITS-1)) downto 2)); -- >>2 = /4
-      index  := to_integer(u_addr);     -- indexed by word, not by byte
-
-      assert (index >= 0) and (index < INST_MEM_SZ/4)
-        report "romRDindex out of bounds: " & SLV32HEX(addr) & " = " &
-               natural'image(index)  severity warning; -- failure;
-
       if sel = '0' and rising_edge(strobe) then 
+
+        u_addr := unsigned(addr((2+(INST_ADDRS_BITS-1)) downto 2)); -- >>2 = /4
+        index  := to_integer(u_addr);     -- indexed by word, not by byte
+
+        assert (index >= 0) and (index < INST_MEM_SZ/4)
+          report "romRDindex out of bounds: " & SLV32HEX(addr) & " = " &
+          natural'image(index)  severity warning; -- failure;
         latched := index;
+
       end if;  
-      
+
       if sel = '0' then
         data <= storage(latched);
         assert TRUE -- DEBUG
-          report "romRD["& natural'image(index) &"]="& SLV32HEX(storage(index)); 
+          report
+             "romRD["& natural'image(index) &"]="& SLV32HEX(storage(index)); 
       else
         data <= (others => 'X');
       end if;

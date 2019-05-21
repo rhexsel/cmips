@@ -1,6 +1,6 @@
 ###
 ### this file in NOT a shell script,
-### yet it was written to make it easy for cutting-n-pasting to the shell
+### yet it was written to make it easy for copying-n-pasting to the shell
 ###
 
 # fetch all the auxiliary programs -- this assumes an Ubuntu installation
@@ -19,8 +19,8 @@ umask 022
 # check the latest version of binutils in http://ftp.gnu.org/gnu/binutils
 # check the latest version of GCC in http://ftp.gnu.org/gnu/gcc/
 
-BINUTILS=binutils-2.32
-COMPILER=gcc-7.4.0
+export BINUTILS=binutils-2.32
+export COMPILER=gcc-7.4.0
 
 wget -c http://ftp.gnu.org/gnu/binutils/${BINUTILS}.tar.bz2
 wget -c http://ftp.gnu.org/gnu/gcc/${COMPILER}/${COMPILER}.tar.gz
@@ -32,6 +32,7 @@ wget -c http://ftp.gnu.org/gnu/gcc/${COMPILER}/${COMPILER}.tar.gz
 #   make sure you have write permission to /opt/cross,
 #   else perform the "make install" steps as root (with umask 022)
 
+export PREFIX=/some/other/path/if/you/are/not/root
 export PREFIX=/opt/cross/
 export TARGET=mips
 
@@ -47,12 +48,12 @@ make
 make install
 cd ..
 
-## build and install GCC (takes several (>30)  minutes)
+## build and install GCC (takes several (>30) minutes)
 
 tar -xvzf ${COMPILER}.tar.gz
 cd ${COMPILER}
 
-# run the script below to fetch the ancillary packages
+# run the script below to fetch the ancillary libraries
 
 contrib/download_prerequisites --no-graphite
 
@@ -89,9 +90,9 @@ export MANPATH=${MANPATH}:${PREFIX}/man
 #
 # the compiler should work on Ubuntu cosmic, bionic and  LinuxMint 19.1
 
-sudo add-apt-repository ppa:gekkio/ghdl
-sudo apt-get update
-sudo apt-get install ghdl
+#sudo add-apt-repository ppa:gekkio/ghdl
+#sudo apt-get update
+#sudo apt-get install ghdl
 
 
 

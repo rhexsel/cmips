@@ -21,7 +21,7 @@
 #define U_DATA 0
 #define U_FLAG 1
 
-#define SPEED 2    // operate at 1/8 of the highest data rate
+#define SPEED 2    // operate at 1/4 of the highest data rate
 
 
 int main(void) {  // receive a string through the UART serial interface
@@ -38,7 +38,7 @@ int main(void) {  // receive a string through the UART serial interface
   ctrl.rts   = 0;  // make RTS=0 to hold remote unit inactive
   ctrl.ign4  = 0;
   ctrl.speed = SPEED;
-  uart->ctl  = ctrl; // initizlize UART
+  uart->ctl  = ctrl; // initialize UART
 
   // handler sets flag=[U_FLAG] to 1 after new character is received;
   // this program resets the flag on fetching a new character from buffer
@@ -50,7 +50,7 @@ int main(void) {  // receive a string through the UART serial interface
   ctrl.ign   = 0;
   ctrl.rts   = 1;  // make RTS=1 to activate remote unit
   ctrl.ign4  = 0;
-  ctrl.speed = SPEED;
+  ctrl.speed = SPEED; // operate at fraction of highest data rate
   uart->ctl = ctrl;
 
   do {
@@ -60,10 +60,10 @@ int main(void) {  // receive a string through the UART serial interface
     c = (char)bfr[U_DATA];   // get new character
     bfr[U_FLAG] = 0;         //   and reset flag
 
-    if (c != (char)EOT) 
-      to_stdout( c );        //   and print new char
+    if (c != (char)EOT)      // if NOT end_of_transmission
+      to_stdout( c );        //   then print new char
     else
-      to_stdout( '\n' );     //   and print new-line
+      to_stdout( '\n' );     //   else print new-line
 
   } while (c != (char)EOT);  // end of transmission?
 

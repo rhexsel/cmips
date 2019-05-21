@@ -280,7 +280,7 @@ begin  -- simulation
     type binary_file is file of integer;
     file load_file: binary_file open read_mode is LOAD_FILE_NAME;
     variable datum: integer;
-    variable s_datum: signed(31 downto 0);
+    variable s_datum: unsigned(31 downto 0);
 
     file dump_file: binary_file open write_mode is DUMP_FILE_NAME;
     
@@ -298,7 +298,7 @@ begin  -- simulation
         if not endfile(load_file) then
 
           read(load_file, datum);
-          s_datum := to_signed(datum, 32);
+          s_datum := to_unsigned(datum, 32);
           assert TRUE report "ramINIT["& natural'image(index*4)&"]= " &
             SLV32HEX(std_logic_vector(s_datum)); -- DEBUG
           storage(index+3) <= std_logic_vector(s_datum(31 downto 24));
@@ -313,10 +313,12 @@ begin  -- simulation
       
     else  -- (rst = '1'), normal operation
 
-      u_addr := unsigned(addr( (DATA_ADDRS_BITS-1) downto 0 ) );
-      index  := to_integer(u_addr);
 
       if sel  = '0' and wr = '0' and rising_edge(strobe) then
+
+        -- only access RAM if address is valid (sel = '0')
+        u_addr := unsigned(addr( (DATA_ADDRS_BITS-1) downto 0 ) );
+        index  := to_integer(u_addr);
         
         assert (index >= 0) and (index < DATA_MEM_SZ)
           report "ramWR index out of bounds: " & natural'image(index)
@@ -341,6 +343,10 @@ begin  -- simulation
 
       if sel = '0' and wr = '1' then
 
+        -- only access RAM if address is valid (sel = '0')
+        u_addr := unsigned(addr( (DATA_ADDRS_BITS-1) downto 0 ) );
+        index  := to_integer(u_addr);
+        
         assert (index >= 0) and (index < DATA_MEM_SZ)
           report "ramRD index out of bounds: " & natural'image(index)
           severity failure;

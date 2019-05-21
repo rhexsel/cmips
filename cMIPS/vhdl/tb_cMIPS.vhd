@@ -457,14 +457,14 @@ architecture TB of tb_cMIPS is
   for U_D_CACHE : D_cache use entity work.D_cache(fake);
 
   -- use fake / rtl
-  for U_FPU: FPU          use entity work.FPU(rtl);
+  for U_FPU: FPU          use entity work.FPU(fake); -- rtl);
 
   -- use fake / simple
   for U_SDRAMc : SDRAM_controller
-                          use entity work.SDRAM_controller(simple);
+                          use entity work.SDRAM_controller(fake);
 
   -- use simulation / fake
-  for U_DISK : DISK       use entity work.DISK(simulation);
+  for U_DISK : DISK       use entity work.DISK(fake);  -- simulation);
   
   -- use fake / rtl
   for U_SDcard : SDcard   use entity work.SDcard(fake);
@@ -874,6 +874,7 @@ begin
 
   -- this is ONLY acceptable for simulations;
   -- computing these differences is TOO expensive for synthesis
+
   in_range <= ( (to_integer(signed(addr(HI_SEL_BITS downto LO_SEL_BITS)))
                  >= 
                  RAM_ADDR_BOTTOM)
@@ -882,9 +883,9 @@ begin
                  <
                  RAM_ADDR_TOP)
               );
-  
+      
   aVal <= '0' when (cpu_d_aVal = '0' and in_range) else '1';
-
+  
   dev_select <= b"0001" when (cpu_d_aVal = '0' and in_range) else b"0000";
 
   assert TRUE --  cpu_d_aVal = '1'
@@ -1062,10 +1063,11 @@ begin
   in_range <= ((addr(HI_ADDR downto LO_ADDR) and in_r) /= ng_r) and
               ((addr(HI_SEL_BITS downto HI_ADDR+1) and oth) = ng_o);
 
-  dev <= to_integer(signed(addr(IO_ADDR_BITS downto LO_SEL_ADDR)));
-  
   aVal <= '0' when ( cpu_d_aVal = '0' and not_waiting = '1' and
                      in_range ) else '1';
+
+  dev <= to_integer(signed(addr(IO_ADDR_BITS downto LO_SEL_ADDR)))
+         when aVal = '0' else 0;
   
   U_decode: process(clk, aVal, addr, dev)
     variable dev_sel    : reg4;
@@ -1102,42 +1104,42 @@ begin
     dma_sel     <= '1';
 
     case dev is -- to_integer(signed(addr(HI_ADDR downto LO_ADDR))) is
-      when  0 => dev_sel     := std_logic_vector(to_signed(is_print, 4));
+      when  0 => dev_sel     := std_logic_vector(to_unsigned(is_print, 4));
                  print_sel   <= aVal or clk;
-      when  1 => dev_sel     := std_logic_vector(to_signed(is_stdout, 4));
+      when  1 => dev_sel     := std_logic_vector(to_unsigned(is_stdout, 4));
                  stdout_sel  <= aVal or clk;
-      when  2 => dev_sel     := std_logic_vector(to_signed(is_stdin, 4));
+      when  2 => dev_sel     := std_logic_vector(to_unsigned(is_stdin, 4));
                  stdin_sel   <= aVal or clk;
-      when  3 => dev_sel     := std_logic_vector(to_signed(is_read, 4));
+      when  3 => dev_sel     := std_logic_vector(to_unsigned(is_read, 4));
                  read_sel    <= aVal or clk;
-      when  4 => dev_sel     := std_logic_vector(to_signed(is_write, 4));
+      when  4 => dev_sel     := std_logic_vector(to_unsigned(is_write, 4));
                  write_sel   <= aVal or clk;
-      when  5 => dev_sel     := std_logic_vector(to_signed(is_count, 4));
+      when  5 => dev_sel     := std_logic_vector(to_unsigned(is_count, 4));
                  counter_sel <= aVal or clk;
-      when  6 => dev_sel     := std_logic_vector(to_signed(is_FPU, 4));
+      when  6 => dev_sel     := std_logic_vector(to_unsigned(is_FPU, 4));
                  FPU_sel     <= aVal;
-      when  7 => dev_sel     := std_logic_vector(to_signed(is_UART, 4));
+      when  7 => dev_sel     := std_logic_vector(to_unsigned(is_UART, 4));
                  UART_sel    <= aVal;
-      when  8 => dev_sel     := std_logic_vector(to_signed(is_SSTATS, 4));
+      when  8 => dev_sel     := std_logic_vector(to_unsigned(is_SSTATS, 4));
                  SSTATS_sel  <= aVal;
-      when  9 => dev_sel     := std_logic_vector(to_signed(is_dsp7seg, 4));
+      when  9 => dev_sel     := std_logic_vector(to_unsigned(is_dsp7seg, 4));
                  dsp7seg_sel <= aVal;
-      when 10 => dev_sel     := std_logic_vector(to_signed(is_keybd, 4));
+      when 10 => dev_sel     := std_logic_vector(to_unsigned(is_keybd, 4));
                  keybd_sel   <= aVal;
-      when 11 => dev_sel     := std_logic_vector(to_signed(is_lcd, 4));
+      when 11 => dev_sel     := std_logic_vector(to_unsigned(is_lcd, 4));
                  lcd_sel     <= aVal;
-      when 12 => dev_sel     := std_logic_vector(to_signed(is_sdc, 4));
+      when 12 => dev_sel     := std_logic_vector(to_unsigned(is_sdc, 4));
                  sdc_sel     <= aVal;
-      when 13 => dev_sel     := std_logic_vector(to_signed(is_dma, 4));
+      when 13 => dev_sel     := std_logic_vector(to_unsigned(is_dma, 4));
                  dma_sel     <= aVal or clk;
-      when others => dev_sel := std_logic_vector(to_signed(is_noise, 4));
+      when others => dev_sel := std_logic_vector(to_unsigned(is_noise, 4));
     end case;
     assert TRUE report "IO_addr "& SLV32HEX(addr);  -- DEBUG
 
     if aVal = '0' then
       dev_select <= dev_sel;
     else
-      dev_select <= std_logic_vector(to_signed(is_noise, 4));
+      dev_select <= std_logic_vector(to_unsigned(is_noise, 4));
     end if;
     
   end process U_decode;
@@ -1169,7 +1171,9 @@ entity sdram_addr_decode is               -- CPU side triggers access
   constant oth  : std_logic_vector(HI_SEL_BITS downto HI_ADDR+1):=(others=>'1');
   constant ng_o : std_logic_vector(HI_SEL_BITS downto HI_ADDR+1):=(others=>'0');
 end entity sdram_addr_decode;
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 architecture behavioral of sdram_addr_decode is
   
   constant all_0  : std_logic_vector(31 downto 0)         := (others=>'0');
@@ -1229,6 +1233,69 @@ begin
     severity NOTE;
   
 end architecture behavioral;
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+architecture fake of sdram_addr_decode is
+  
+  constant all_0  : std_logic_vector(31 downto 0)         := (others=>'0');
+  
+  constant a_hi   : std_logic_vector(31 downto HI_ADDR+1) := (others=>'0');
+  constant a_lo   : std_logic_vector(LO_ADDR-1 downto 0)  := (others=>'0');
+  constant a_bits : std_logic_vector(HI_ADDR downto LO_ADDR) := (others=>'1');
+  constant a_mask : std_logic_vector := a_hi & a_bits & a_lo;
+
+  constant LO_RAM : natural := 0;
+  constant HI_RAM : natural := log2_ceil(SDRAM_MEM_SZ-1);
+  constant r_hi   : std_logic_vector(31 downto HI_RAM+1)   := (others=>'1');
+  constant r_lo   : std_logic_vector(HI_RAM downto LO_RAM) := (others=>'0');
+  constant r_mask : std_logic_vector := r_hi & r_lo;
+    
+  signal in_range : boolean;
+
+  constant SDRAM_ADDR_BOTTOM : natural :=
+        to_integer(signed(x_SDRAM_BASE_ADDR(HI_SEL_BITS downto LO_SEL_BITS)));
+  constant SDRAM_ADDR_RANGE : natural :=
+    (to_integer(signed(x_SDRAM_BASE_ADDR(HI_SEL_BITS downto LO_SEL_BITS)))
+     +
+     to_integer(signed(x_SDRAM_MEM_SZ(HI_SEL_BITS downto LO_SEL_BITS))));
+  constant SDRAM_ADDR_TOP : natural := SDRAM_ADDR_BOTTOM + SDRAM_ADDR_RANGE;
+  
+begin
+
+  in_range <= FALSE;
+  -- this is ONLY acceptable for simulations;
+  -- computing these differences is TOO expensive for synthesis
+--  in_range <= ( (to_integer(signed(addr(HI_SEL_BITS downto LO_SEL_BITS)))
+--                 >= 
+--                 SDRAM_ADDR_BOTTOM)
+--                and
+--                (to_integer(signed(addr(HI_SEL_BITS downto LO_SEL_BITS)))
+--                 <
+--                 SDRAM_ADDR_TOP)
+--              );
+  
+  aVal <= '0' when (cpu_d_aVal = '0' and in_range) else '1';
+
+  dev_select <= b"1110" when (cpu_d_aVal = '0' and in_range) else b"0000";
+
+  assert TRUE --  cpu_d_aVal = '1'
+    report  "e " & SLV32HEX(addr) & 
+    " addr "   & SLV2str(addr(15 downto 0)) & LF & 
+    " LO_AD "  & integer'image(LO_ADDR) &
+    " HI_AD "  & integer'image(HI_ADDR) &
+    " a_hi "   & SLV2STR(a_hi) &
+    " a_lo "   & SLV2STR(a_lo) &
+    " a_bits " & SLV2STR(a_bits) &
+    " a_mask " & SLV32HEX(a_mask) & LF &
+    " LO_RAM " & integer'image(LO_RAM) &
+    " HI_RAM " & integer'image(HI_RAM) &
+    " r_hi "   & SLV2STR(r_hi) &
+    " r_lo "   & SLV2STR(r_lo) &
+    " r_mask " & SLV32HEX(r_mask)
+    severity NOTE;
+  
+end architecture fake;
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 

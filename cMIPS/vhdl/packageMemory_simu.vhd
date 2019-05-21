@@ -114,11 +114,11 @@ package p_MEMORY is
 
   -- constants for CONFIG1 cop0 register (Table 8-24 pg 103)
   constant DC_SETS_PER_WAY: reg3 :=
-    std_logic_vector(to_signed(DC_INDEX_BITS - 6, 3));
+    std_logic_vector(to_unsigned(DC_INDEX_BITS - 6, 3));
   constant DC_LINE_SIZE: reg3 :=
-    std_logic_vector(to_signed(DC_WORD_SEL_BITS + 1, 3));
+    std_logic_vector(to_unsigned(DC_WORD_SEL_BITS + 1, 3));
   constant DC_ASSOCIATIVITY: reg3 :=
-    std_logic_vector(to_signed(DC_NUM_WAYS - 1, 3));
+    std_logic_vector(to_unsigned(DC_NUM_WAYS - 1, 3));
 
   
   -- INSTRUCTION CACHE parameters =========================================
@@ -139,11 +139,11 @@ package p_MEMORY is
 
   -- constants for CONFIG1 cop0 register (Table 8-24 pg 103)
   constant IC_SETS_PER_WAY: reg3 :=
-    std_logic_vector(to_signed(IC_INDEX_BITS - 6, 3));
+    std_logic_vector(to_unsigned(IC_INDEX_BITS - 6, 3));
   constant IC_LINE_SIZE: reg3 :=
-    std_logic_vector(to_signed(IC_WORD_SEL_BITS + 1, 3));
+    std_logic_vector(to_unsigned(IC_WORD_SEL_BITS + 1, 3));
   constant IC_ASSOCIATIVITY: reg3 :=
-    std_logic_vector(to_signed(IC_NUM_WAYS - 1, 3));
+    std_logic_vector(to_unsigned(IC_NUM_WAYS - 1, 3));
 
   -- constants to access the cache statistics counters
   constant dcache_Stats_ref   : reg3 := "000";
@@ -160,7 +160,7 @@ package p_MEMORY is
   constant MMU_CAPACITY : natural := 8;
   constant MMU_CAPACITY_BITS : natural := log2_ceil( MMU_CAPACITY );
   constant MMU_SIZE: reg6 := 
-    std_logic_vector(to_signed( (MMU_CAPACITY-1), 6) );
+    std_logic_vector(to_unsigned( (MMU_CAPACITY-1), 6) );
   constant MMU_WIRED_INIT : reg32 := x"00000000";
   
   constant VABITS       : natural := 32;
@@ -225,14 +225,14 @@ package p_MEMORY is
 
   -- physical addresses for 8 ROM pages
   
-  constant x_ROM_PPN_0 : reg32 := std_logic_vector(to_signed(INST_BASE_ADDR + 0*PAGE_SZ, 32));
-  constant x_ROM_PPN_1 : reg32 := std_logic_vector(to_signed(INST_BASE_ADDR + 1*PAGE_SZ, 32));
-  constant x_ROM_PPN_2 : reg32 := std_logic_vector(to_signed(INST_BASE_ADDR + 2*PAGE_SZ, 32));
-  constant x_ROM_PPN_3 : reg32 := std_logic_vector(to_signed(INST_BASE_ADDR + 3*PAGE_SZ, 32));
-  constant x_ROM_PPN_4 : reg32 := std_logic_vector(to_signed(INST_BASE_ADDR + 4*PAGE_SZ, 32));
-  constant x_ROM_PPN_5 : reg32 := std_logic_vector(to_signed(INST_BASE_ADDR + 5*PAGE_SZ, 32));
-  constant x_ROM_PPN_6 : reg32 := std_logic_vector(to_signed(INST_BASE_ADDR + 6*PAGE_SZ, 32));
-  constant x_ROM_PPN_7 : reg32 := std_logic_vector(to_signed(INST_BASE_ADDR + 7*PAGE_SZ, 32));
+  constant x_ROM_PPN_0 : reg32 := std_logic_vector(to_unsigned(INST_BASE_ADDR + 0*PAGE_SZ, 32));
+  constant x_ROM_PPN_1 : reg32 := std_logic_vector(to_unsigned(INST_BASE_ADDR + 1*PAGE_SZ, 32));
+  constant x_ROM_PPN_2 : reg32 := std_logic_vector(to_unsigned(INST_BASE_ADDR + 2*PAGE_SZ, 32));
+  constant x_ROM_PPN_3 : reg32 := std_logic_vector(to_unsigned(INST_BASE_ADDR + 3*PAGE_SZ, 32));
+  constant x_ROM_PPN_4 : reg32 := std_logic_vector(to_unsigned(INST_BASE_ADDR + 4*PAGE_SZ, 32));
+  constant x_ROM_PPN_5 : reg32 := std_logic_vector(to_unsigned(INST_BASE_ADDR + 5*PAGE_SZ, 32));
+  constant x_ROM_PPN_6 : reg32 := std_logic_vector(to_unsigned(INST_BASE_ADDR + 6*PAGE_SZ, 32));
+  constant x_ROM_PPN_7 : reg32 := std_logic_vector(to_unsigned(INST_BASE_ADDR + 7*PAGE_SZ, 32));
 
   constant MMU_ini_tag_ROM0 : reg32 := (x_ROM_PPN_0 and tag_mask) or tag_g;
   constant MMU_ini_dat_ROM0 : mmu_dat_reg := 
@@ -261,14 +261,14 @@ package p_MEMORY is
 
   -- physical addresses for 8 RAM pages
   
-  constant x_RAM_PPN_0 : reg32 := std_logic_vector(to_signed(DATA_BASE_ADDR + 0*PAGE_SZ, 32));
-  constant x_RAM_PPN_1 : reg32 := std_logic_vector(to_signed(DATA_BASE_ADDR + 1*PAGE_SZ, 32));
-  constant x_RAM_PPN_2 : reg32 := std_logic_vector(to_signed(DATA_BASE_ADDR + 2*PAGE_SZ, 32));
-  constant x_RAM_PPN_3 : reg32 := std_logic_vector(to_signed(DATA_BASE_ADDR + 3*PAGE_SZ, 32));
-  constant x_RAM_PPN_4 : reg32 := std_logic_vector(to_signed(DATA_BASE_ADDR + 4*PAGE_SZ, 32));
-  constant x_RAM_PPN_5 : reg32 := std_logic_vector(to_signed(DATA_BASE_ADDR + 5*PAGE_SZ, 32));
-  constant x_RAM_PPN_6 : reg32 := std_logic_vector(to_signed(DATA_BASE_ADDR + 6*PAGE_SZ, 32));
-  constant x_RAM_PPN_7 : reg32 := std_logic_vector(to_signed(DATA_BASE_ADDR + 7*PAGE_SZ, 32));
+  constant x_RAM_PPN_0 : reg32 := std_logic_vector(to_unsigned(DATA_BASE_ADDR + 0*PAGE_SZ, 32));
+  constant x_RAM_PPN_1 : reg32 := std_logic_vector(to_unsigned(DATA_BASE_ADDR + 1*PAGE_SZ, 32));
+  constant x_RAM_PPN_2 : reg32 := std_logic_vector(to_unsigned(DATA_BASE_ADDR + 2*PAGE_SZ, 32));
+  constant x_RAM_PPN_3 : reg32 := std_logic_vector(to_unsigned(DATA_BASE_ADDR + 3*PAGE_SZ, 32));
+  constant x_RAM_PPN_4 : reg32 := std_logic_vector(to_unsigned(DATA_BASE_ADDR + 4*PAGE_SZ, 32));
+  constant x_RAM_PPN_5 : reg32 := std_logic_vector(to_unsigned(DATA_BASE_ADDR + 5*PAGE_SZ, 32));
+  constant x_RAM_PPN_6 : reg32 := std_logic_vector(to_unsigned(DATA_BASE_ADDR + 6*PAGE_SZ, 32));
+  constant x_RAM_PPN_7 : reg32 := std_logic_vector(to_unsigned(DATA_BASE_ADDR + 7*PAGE_SZ, 32));
   
   constant MMU_ini_tag_RAM0 : reg32 := (x_RAM_PPN_0 and tag_mask) or tag_g;
   constant MMU_ini_dat_RAM0 : mmu_dat_reg := 
@@ -297,8 +297,8 @@ package p_MEMORY is
 
   -- physical addresses for 2 pages reserved for I/O devices
   
-  constant x_IO_PPN_0 : reg32 := std_logic_vector(to_signed(IO_BASE_ADDR + 0*PAGE_SZ, 32));
-  constant x_IO_PPN_1 : reg32 := std_logic_vector(to_signed(IO_BASE_ADDR + 1*PAGE_SZ, 32));
+  constant x_IO_PPN_0 : reg32 := std_logic_vector(to_unsigned(IO_BASE_ADDR + 0*PAGE_SZ, 32));
+  constant x_IO_PPN_1 : reg32 := std_logic_vector(to_unsigned(IO_BASE_ADDR + 1*PAGE_SZ, 32));
 
   constant MMU_ini_tag_IO : reg32 := (x_IO_BASE_ADDR and tag_mask) or tag_g;
   constant MMU_ini_dat_IO0 : mmu_dat_reg := 
@@ -309,14 +309,14 @@ package p_MEMORY is
 
   -- physical addresses for 8 SDRAM pages
   
-  constant x_SDRAM_PPN_0 : reg32 := std_logic_vector(to_signed(SDRAM_BASE_ADDR + 0*PAGE_SZ, 32));
-  constant x_SDRAM_PPN_1 : reg32 := std_logic_vector(to_signed(SDRAM_BASE_ADDR + 1*PAGE_SZ, 32));
-  constant x_SDRAM_PPN_2 : reg32 := std_logic_vector(to_signed(SDRAM_BASE_ADDR + 2*PAGE_SZ, 32));
-  constant x_SDRAM_PPN_3 : reg32 := std_logic_vector(to_signed(SDRAM_BASE_ADDR + 3*PAGE_SZ, 32));
-  constant x_SDRAM_PPN_4 : reg32 := std_logic_vector(to_signed(SDRAM_BASE_ADDR + 4*PAGE_SZ, 32));
-  constant x_SDRAM_PPN_5 : reg32 := std_logic_vector(to_signed(SDRAM_BASE_ADDR + 5*PAGE_SZ, 32));
-  constant x_SDRAM_PPN_6 : reg32 := std_logic_vector(to_signed(SDRAM_BASE_ADDR + 6*PAGE_SZ, 32));
-  constant x_SDRAM_PPN_7 : reg32 := std_logic_vector(to_signed(SDRAM_BASE_ADDR + 7*PAGE_SZ, 32));
+  constant x_SDRAM_PPN_0 : reg32 := std_logic_vector(to_unsigned(SDRAM_BASE_ADDR + 0*PAGE_SZ, 32));
+  constant x_SDRAM_PPN_1 : reg32 := std_logic_vector(to_unsigned(SDRAM_BASE_ADDR + 1*PAGE_SZ, 32));
+  constant x_SDRAM_PPN_2 : reg32 := std_logic_vector(to_unsigned(SDRAM_BASE_ADDR + 2*PAGE_SZ, 32));
+  constant x_SDRAM_PPN_3 : reg32 := std_logic_vector(to_unsigned(SDRAM_BASE_ADDR + 3*PAGE_SZ, 32));
+  constant x_SDRAM_PPN_4 : reg32 := std_logic_vector(to_unsigned(SDRAM_BASE_ADDR + 4*PAGE_SZ, 32));
+  constant x_SDRAM_PPN_5 : reg32 := std_logic_vector(to_unsigned(SDRAM_BASE_ADDR + 5*PAGE_SZ, 32));
+  constant x_SDRAM_PPN_6 : reg32 := std_logic_vector(to_unsigned(SDRAM_BASE_ADDR + 6*PAGE_SZ, 32));
+  constant x_SDRAM_PPN_7 : reg32 := std_logic_vector(to_unsigned(SDRAM_BASE_ADDR + 7*PAGE_SZ, 32));
   
   constant MMU_ini_tag_SDR0 : reg32 := (x_SDRAM_PPN_0 and tag_mask) or tag_g;
   constant MMU_ini_dat_SDR0 : mmu_dat_reg := 
