@@ -1,0 +1,25 @@
+enable_fast_exit 1
+fill_waveform 1
+initial_window_x -1
+left_justify_sigs 1
+scale_to_time_dimension n
+show_wave_highlight 1
+splash_disable 1
+vcd_preserve_glitches 1
+
+# pick a letter size for signal list on the left
+# fontname_signals fixed 8
+# fontname_signals fixed 9
+# 
+fontname_signals fixed 10
+# fontname_signals terminus 8
+# fontname_waves fixed 8
+
+
+# pick a letter size for names inside signal waves
+# fontname_waves fixed 8
+# fontname_waves fixed 9
+# 
+fontname_waves terminus 9
+# fontname_waves terminus 10
+

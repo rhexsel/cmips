@@ -151,7 +151,7 @@ dat=data.bin
 
 if [ $verbose = true ]; then  memory_map="-Map ${inp}.map" ; fi
 
-cflags="-DcMIPS -mcode-readable=no -mno-gpopt -fno-builtin"
+cflags="-DcMIPS -mcode-readable=no -mno-gpopt -mexplicit-relocs -fno-builtin"
 
 (mips-gcc -O${level} ${warn} ${cflags} -I"${include}" \
           -S ${src} ${S} -o ${asm}  ||  exit 1) && \
