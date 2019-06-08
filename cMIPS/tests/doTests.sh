@@ -90,7 +90,7 @@ a_EX2="mmu_mod mmu_mod2 mmu_double mmu_double2 busError_d busError_i"
 if [ $fullTest = true ] ; then
    a_tests=$(echo $a_FWD $a_CAC $a_BEQ $a_FUN $a_OTH $a_BHW $a_MEM $a_CTR $a_COP $a_MMU $a_EX1 $a_EX2)
 else
-   a_tests=$(echo $a_BEQ $a_FUN $a_BHW $a_CTR $a_COP $a_EX2)
+   a_tests=$(echo $a_FUN $a_CTR $a_EX2)
 fi
 
 ## force an update of all include files with edMemory.sh
@@ -140,7 +140,7 @@ if [ $fullTest = true ] ; then
     sed -i -e '/define WALK_THE_PT/s:0:1:' -e '/define TLB_MODIFIED/s:0:1:' \
 	-e '/define DOUBLE_FAULT/s:0:1:' -e '/define PROT_VIOL/s:0:1:' pt_walk.c
 else
-    c_tests=$(echo $c_small $c_types $c_timing $c_uart)
+    c_tests=$(echo $c_types $c_timing $c_uart)
 fi
 
 echo -e "\nabcdef\n012345\n" >serial.inp
