@@ -9,7 +9,7 @@
 #define i2c(a) ( ((a) < 10)   ? ((a)+'0') : (((a)+'a')-10) )
 
 
-#define N  6                    // must be less than 29
+#define N  6                    // must be less than 25
 #define CNT_VALUE 0x40000040    // set count to 64 cycles
 
 void main(void) {
@@ -18,12 +18,12 @@ void main(void) {
   newValue  = CNT_VALUE;
   increased = TRUE;
 
-  for (i=1; i < (N+1); i++) {   // repeat N rounds
+  for (i=1; i <= N; i++) {      // repeat N rounds
     print(i);                   // print number of round
     // to_stdout( i2c(i) );     // print number of round
     // to_stdout('\n');
 
-    newValue = CNT_VALUE + (i<<3);
+    newValue = CNT_VALUE | (i<<3);
     startCounter(newValue, 0);  // num cycles increases with i, no interrupts
 
     old = 0;
@@ -33,7 +33,7 @@ void main(void) {
       if ( (new = readCounter()) > old) {
 	increased = increased & TRUE;
 	old = new;
-	// print(new);          // print current count, not for automated tests
+	//print(new);          // print current count, not for automated tests
       } else {
 	increased = FALSE;
       }
